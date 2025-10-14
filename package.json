@@ -17,7 +17,10 @@
   },
   "homepage": "https://github.com/RHarish1/MultiSourceSearch#readme",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7"
   }
 }
