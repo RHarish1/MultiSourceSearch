@@ -1,20 +1,51 @@
-const express = require('express');
+import express from 'express';
+import bcrypt from 'bcrypt';
+import { sequelize, User } from './models/User.js';
+
 const app = express();
-const port = 3000;
-import 'dotenv/config';
 app.use(express.json());
+const port = process.env.PORT || 3000;
+
+await sequelize.sync();
 
 
-
-app.get("/home", (req, res) => {
-    res.send("Welcome to our app!");
+// req : { "username": , "password": }
+app.post("/login", async (req, res) => {
+    const { typedUsername, typedPassword } = req.body;
+    const user = await User.findOne({
+        where: {
+            username: typedUsername
+        }
+    });
+    if (!user) {
+        return res.status(401).send("Retry Please!");
+    }
+    const match = await bcrypt.compare(typedPassword, user.password);
+    if (match) {
+        res.redirect("/home");
+    }
+    else {
+        return res.status(401).send("Retry Please!");
+    }
 })
 
-app.get("/", (req, res) => {
+
+app.post("/signup", async (req, res) => {
+    const { typedUsername, typedPassword } = req.body;
+    const user = await User.findOne({
+        where: {
+            username: typedUsername
+        }
+    });
+    if (user) {
+        return res.status(401).send("User already exists!");
+    }
+    const hashedPassword = await bcrypt.hash(typedPassword, 12);
+    const newUser = await User.create({ username: typedUsername, password: hashedPassword });
     res.redirect("/home");
 })
 
-// req : { "username": , "password": }
-app.post("/login", (req, res) => {
-    const { username, password } = req.body;
-})  
+app.get('/home', (req, res) => res.send("Welcome to our app!"));
+app.get('/', (req, res) => res.redirect('/signup'));
+
+app.listen(port, () => console.log(`Server running on port ${port}`));
