@@ -1,15 +1,13 @@
 import { DataTypes } from 'sequelize';
-import { sequelize } from './index.js';
 
-export const defineUser = (sequelize, Sequelize) => {
+export const defineUser = (sequelize) => {
     return sequelize.define(
         'User',
         {
-            username: DataTypes.STRING,
-            email: DataTypes.STRING
+            username: { type: DataTypes.STRING, allowNull: false, unique: true },
+            email: { type: DataTypes.STRING },
+            passwordHash: { type: DataTypes.STRING },
         },
-        {
-            freezeTableName: true
-        }
+        { freezeTableName: true }
     );
-}
+};

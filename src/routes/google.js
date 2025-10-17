@@ -1,7 +1,7 @@
 import express from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { db } from '../models/postgres/index.js';
+import { db } from '../../models/postgres/index.js';
 const { sequelize, User, Drive } = db;
 
 const router = express.Router();
@@ -11,10 +11,10 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/auth/google/callback',
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/drive.metadata.readonly']
-}, async (accessToken, refreshToken, profile, done) => {
+    passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
     try {
-        const userId = profile.reqSessionUserId; // attached in route
+        const userId = req.userIdForGoogle;
         if (!userId) return done(new Error('User not logged in'));
 
         const [drive, created] = await Drive.findOrCreate({
@@ -34,6 +34,7 @@ passport.use(new GoogleStrategy({
     }
 }));
 
+
 passport.serializeUser((obj, done) => done(null, obj.id));
 passport.deserializeUser(async (id, done) => {
     const drive = await Drive.findByPk(id);
@@ -42,19 +43,24 @@ passport.deserializeUser(async (id, done) => {
 
 // --- Routes ---
 router.get('/', (req, res, next) => {
-    if (!req.session.userId) return res.redirect('/auth/login');
+    if (!req.session.userId) return res.redirect('/');
     passport.authenticate('google', {
+        scope: ['profile', 'email', 'https://www.googleapis.com/auth/drive.metadata.readonly'],
         state: JSON.stringify({ userId: req.session.userId })
     })(req, res, next);
 });
-
-router.get('/callback', (req, res, next) => {
-    const state = JSON.parse(req.query.state || '{}');
-    req.userIdForGoogle = state.userId;
+router.get(
+    '/callback',
+    (req, res, next) => {
+        const state = JSON.parse(req.query.state || '{}');
+        req.userIdForGoogle = state.userId;;
+        next();
+    },
     passport.authenticate('google', {
         failureRedirect: '/',
-        successRedirect: '/drives'
-    })(req, res, next);
-});
+        successRedirect: '/dashboard'
+    })
+);
+
 
 export default router;

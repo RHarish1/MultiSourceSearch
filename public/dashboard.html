@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Dashboard</h2>
+            <button id="logoutBtn" class="btn btn-danger">Logout</button>
+        </div>
+
+        <!-- User Info -->
+        <div id="userInfo" class="alert alert-info"></div>
+
+        <!-- Drives Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Connected Drives
+                <a href="/auth/google" class="btn btn-primary btn-sm float-end">Connect Google Drive</a>
+            </div>
+            <ul id="drivesList" class="list-group list-group-flush"></ul>
+        </div>
+
+        <!-- Files Section -->
+        <div class="card">
+            <div class="card-header">Files (Click a drive to load files)</div>
+            <ul id="filesList" class="list-group list-group-flush"></ul>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS + Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const userInfo = document.getElementById('userInfo');
+        const drivesList = document.getElementById('drivesList');
+        const filesList = document.getElementById('filesList');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Load user info
+        async function loadUser() {
+            const res = await fetch('/auth/me');
+            if (!res.ok) {
+                userInfo.textContent = 'Not logged in';
+                return;
+            }
+            const data = await res.json();
+            userInfo.textContent = `Logged in as: ${data.user.username}`;
+        }
+
+        // Load drives for current user
+        async function loadDrives() {
+            const res = await fetch('/drives'); // you will create this route next
+            if (!res.ok) return;
+            const drives = await res.json();
+            drivesList.innerHTML = '';
+            drives.forEach(drive => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.textContent = `${drive.provider}`;
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'btn btn-sm btn-secondary';
+                loadBtn.textContent = 'Load Files';
+                loadBtn.onclick = () => loadFiles(drive.id);
+                li.appendChild(loadBtn);
+                drivesList.appendChild(li);
+            });
+        }
+
+        // Load files for a drive
+        async function loadFiles(driveId) {
+            const res = await fetch(`/files/${driveId}`); // you will create this route next
+            if (!res.ok) return;
+            const files = await res.json();
+            filesList.innerHTML = '';
+            files.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+        ${file.name} 
+        <span>
+          <input type="text" placeholder="Add tags" id="tags-${file._id}" class="form-control form-control-sm d-inline-block" style="width:150px;">
+          <button class="btn btn-sm btn-success" onclick="addTags('${file._id}')">Save</button>
+        </span>
+      `;
+                filesList.appendChild(li);
+            });
+        }
+
+        // Add tags to a file
+        async function addTags(fileId) {
+            const input = document.getElementById(`tags-${fileId}`);
+            const tags = input.value.split(',').map(t => t.trim()).filter(Boolean);
+            await fetch(`/files/${fileId}/tags`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tags })
+            });
+            alert('Tags saved!');
+        }
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            await fetch('/auth/logout', { method: 'POST' });
+            location.href = '/index.html';
+        });
+
+        // Initialize
+        loadUser();
+        loadDrives();
+    </script>
+
+</body>
+
+</html>

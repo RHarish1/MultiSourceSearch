@@ -1,13 +1,14 @@
-import { Sequelize } from 'sequelize';
+import { sequelize } from './db.js';
 import { defineUser } from './User.js';
 import { defineDrive } from './Drive.js';
-import dotenv from 'dotenv';
-dotenv.config();
-export const sequelize = new Sequelize(process.env.DATABASE_URL);
 
-// Pass sequelize and Sequelize to define models
-export const User = defineUser(sequelize, Sequelize);
-export const Drive = defineDrive(sequelize, Sequelize);
+// define models
+export const User = defineUser(sequelize);
+export const Drive = defineDrive(sequelize);
+
+// associations
 User.hasMany(Drive, { onDelete: 'CASCADE' });
 Drive.belongsTo(User);
+await sequelize.sync({ alter: true });
+
 export const db = { sequelize, User, Drive };
