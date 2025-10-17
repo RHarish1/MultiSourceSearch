@@ -1,43 +1,36 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { User } from '../models/User.js';
+import { db } from '../models/postgres/index.js';
+const { sequelize, User, Drive } = db;
 
 const router = express.Router();
 
-// POST /auth/login
-router.post("/login", async (req, res) => {
-    const { typedUsername, typedPassword } = req.body;
-    const user = await User.findOne({
-        where: {
-            username: typedUsername
-        }
-    });
-    if (!user) {
-        return res.status(401).send("Retry Please!");
-    }
-    const match = await bcrypt.compare(typedPassword, user.password);
-    if (match) {
-        res.redirect("/home");
-    }
-    else {
-        return res.status(401).send("Retry Please!");
-    }
-})
+// --- Register ---
+router.post('/register', async (req, res) => {
+    const { username, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, passwordHash });
+    req.session.userId = user.id; // login after register
+    res.json({ message: 'Registered', userId: user.id });
+});
 
-// POST /auth/signup
-router.post("/signup", async (req, res) => {
-    const { typedUsername, typedPassword } = req.body;
-    const user = await User.findOne({
-        where: {
-            username: typedUsername
-        }
-    });
-    if (user) {
-        return res.status(401).send("User already exists!");
-    }
-    const hashedPassword = await bcrypt.hash(typedPassword, 12);
-    const newUser = await User.create({ username: typedUsername, password: hashedPassword });
-    res.redirect("/home");
-})
+// --- Login ---
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ where: { username } });
+    if (!user) return res.status(400).json({ error: 'Invalid username/password' });
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) return res.status(400).json({ error: 'Invalid username/password' });
+
+    req.session.userId = user.id;
+    res.json({ message: 'Logged in', userId: user.id });
+});
+
+// --- Logout ---
+router.post('/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ message: 'Logged out' });
+});
 
 export default router;
