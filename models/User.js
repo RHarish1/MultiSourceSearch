@@ -1,6 +1,5 @@
-import { Sequelize, DataTypes } from 'sequelize';
-
-export const sequelize = new Sequelize(process.env.DATABASE_URL);
+import { DataTypes } from 'sequelize';
+import { sequelize } from './index.js';
 
 export const User = sequelize.define('User', {
     username: DataTypes.STRING,
