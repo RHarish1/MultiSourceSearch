@@ -1,50 +1,89 @@
-import express from 'express';
-import session from 'express-session';
-import passport from 'passport';
-import authRoutes from './routes/auth.js';
-import googleRoutes from './routes/google.js';
-import { requireLogin } from '../middleware/auth.js';
-import { db } from '../models/postgres/index.js';
-const { sequelize, User, Drive } = db;
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-dotenv.config();
-import cors from 'cors';
+// server/app.js
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import morgan from "morgan";
+import helmet from "helmet";
+import path from "path";
+import requireLogin from "../middleware/requireLogin.js";
+import session from "express-session";
+import { RedisStore } from "connect-redis";
+import { createClient } from "redis";
 
+// Import route modules
+import authRoutes from "./routes/auth.js";
+// import dashboardRoutes from "./routes/dashboard.js";
+// import driveRoutes from "./routes/manageDrives.js";
+// import imageRoutes from "./routes/imageSearch.js";
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+const __dirname = path.resolve();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// --- Redis Session Store Setup ---
 
-
-app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
-}));
-// Session middleware
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
-    resave: false,
-    saveUninitialized: false,
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Routes
-app.use('/auth', authRoutes);
-app.use('/auth/google', googleRoutes);
-
-// Serve index.html at root
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-app.get('/dashboard', requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/dashboard.html'));
+const redisClient = createClient({
+    url: process.env.REDIS_URL || "redis://localhost:6379"
 });
 
-await sequelize.sync();
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+await redisClient.connect().catch(console.error);
+
+app.use(
+    session({
+        store: new RedisStore({ client: redisClient }),
+        secret: process.env.SESSION_SECRET || "supersecret",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: false, // true if behind HTTPS
+            httpOnly: true,
+            maxAge: 1000 * 60 * 60 * 24 // 1 day
+        }
+    })
+);
+// ---------- Middleware Setup ----------
+app.use(
+    helmet({
+        contentSecurityPolicy: false, // temporarily disabled if loading inline scripts
+    })
+);
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(morgan("dev"));
+
+// ---------- Serve Static Files ----------
+app.use(express.static(path.join(__dirname, "public")));
+
+// ---------- Public (Pre-login) Routes ----------
+app.use("/auth", authRoutes);
+
+app.get(["/", "/index"], (req, res) => {
+    if (req.session.userId) {
+        // Already logged in, redirect to dashboard
+        return res.redirect("/dashboard");
+    }
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/register", (req, res) => {
+    if (req.session.userId) {
+        // Already logged in, redirect to dashboard
+        return res.redirect("/dashboard");
+    }
+    res.sendFile(path.join(__dirname, "public", "register.html"));
+});
+
+app.get("/dashboard", requireLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+// ---------- Protected (Post-login) Routes ----------
+// app.use("/dashboard", requireLogin, dashboardRoutes);
+// app.use("/manageDrives", requireLogin, driveRoutes);
+// app.use("/imageSearch", requireLogin, imageRoutes);
+
+// ---------- Start Server ----------
+app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+});

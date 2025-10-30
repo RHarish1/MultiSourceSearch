@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { db } from '../../models/postgres/index.js';
 const { sequelize, User, Drive } = db;
 import { Op } from 'sequelize';
-
+import requireLogin from '../../middleware/requireLogin.js';
 const router = express.Router();
 
 // --- Register ---
@@ -38,6 +38,7 @@ router.post('/register', async (req, res) => {
         req.session.userId = user.id;
 
         res.json({ message: 'Registered', userId: user.id });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Registration failed' });
@@ -80,7 +81,7 @@ router.post('/login', async (req, res) => {
 });
 
 // --- Logout ---
-router.post('/logout', (req, res) => {
+router.post('/logout', requireLogin, (req, res) => {
     req.session.destroy(err => {
         if (err) {
             console.error(err);
@@ -92,9 +93,7 @@ router.post('/logout', (req, res) => {
 });
 
 // --- Get current logged-in user ---
-router.get('/me', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Not logged in' });
-
+router.get('/me', requireLogin, async (req, res) => {
     try {
         const user = await User.findByPk(req.session.userId, {
             attributes: ['id', 'username', 'email']
