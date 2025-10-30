@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Drives</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+        <a class="navbar-brand" href="/dashboard">📂 Manage Drives</a>
+        <div class="ms-auto">
+            <button id="logoutBtn" class="btn btn-outline-light btn-sm">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h3 class="mb-4">Connected Drives</h3>
+
+        <div id="driveStatus" class="mb-4"></div>
+
+        <div class="d-flex gap-3">
+            <button id="linkGDrive" class="btn btn-danger">Link Google Drive</button>
+            <button id="linkOneDrive" class="btn btn-primary">Link OneDrive</button>
+        </div>
+    </div>
+
+    <script>
+        async function getDriveStatus() {
+            const res = await fetch('/auth/me');
+            if (!res.ok) return (window.location.href = '/');
+            const data = await res.json();
+            document.getElementById('driveStatus').innerHTML = `
+                <div class="card p-3 shadow-sm">
+                    <p><strong>Username:</strong> ${data.user.username}</p>
+                    <p><strong>Email:</strong> ${data.user.email}</p>
+                    <p><strong>Google Drive:</strong> ${data.user.gdriveLinked ? '✅ Linked' : '❌ Not linked'}</p>
+                    <p><strong>OneDrive:</strong> ${data.user.onedriveLinked ? '✅ Linked' : '❌ Not linked'}</p>
+                </div>`;
+        }
+
+        document.getElementById('linkGDrive').addEventListener('click', () => {
+            window.location.href = '/auth/google'; // your Google OAuth route
+        });
+
+        document.getElementById('linkOneDrive').addEventListener('click', () => {
+            window.location.href = '/auth/onedrive'; // your OneDrive OAuth route
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        });
+
+        getDriveStatus();
+    </script>
+</body>
+
+</html>

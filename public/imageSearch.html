@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Images</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+        <a class="navbar-brand" href="/dashboard">🖼️ Manage Images</a>
+        <div class="ms-auto">
+            <button id="logoutBtn" class="btn btn-outline-light btn-sm">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h3 class="mb-4">Your Uploaded Images</h3>
+        <div id="imageList" class="row g-3"></div>
+    </div>
+
+    <script>
+        async function fetchImages() {
+            const res = await fetch('/api/images'); // protected route
+            if (!res.ok) return (window.location.href = '/dashboard');
+            const images = await res.json();
+            const list = document.getElementById('imageList');
+            list.innerHTML = '';
+
+            if (images.length === 0) {
+                list.innerHTML = '<p class="text-muted">No images yet.</p>';
+                return;
+            }
+
+            images.forEach(img => {
+                const col = document.createElement('div');
+                col.className = 'col-md-3';
+                col.innerHTML = `
+                    <div class="card shadow-sm">
+                        <img src="${img.url}" class="card-img-top" alt="${img.name}">
+                        <div class="card-body">
+                            <p class="card-text">${img.name}</p>
+                            <button class="btn btn-sm btn-danger" onclick="deleteImage('${img.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(col);
+            });
+        }
+
+        async function deleteImage(id) {
+            await fetch(`/api/images/${id}`, { method: 'DELETE' });
+            fetchImages();
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        });
+
+        fetchImages();
+    </script>
+</body>
+
+</html>

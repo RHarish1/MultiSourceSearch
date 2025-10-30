@@ -9,12 +9,14 @@ import requireLogin from "../middleware/requireLogin.js";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
+import preventAuthForLoggedIn from "../middleware/preventAuthForLoggedIn.js";
 
 // Import route modules
 import authRoutes from "./routes/auth.js";
-// import dashboardRoutes from "./routes/dashboard.js";
-// import driveRoutes from "./routes/manageDrives.js";
-// import imageRoutes from "./routes/imageSearch.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import driveRoutes from "./routes/manageDrives.js";
+import imageRoutes from "./routes/imageSearch.js";
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +39,7 @@ app.use(
         cookie: {
             secure: false, // true if behind HTTPS
             httpOnly: true,
+            samesite: "lax",
             maxAge: 1000 * 60 * 60 * 24 // 1 day
         }
     })
@@ -52,36 +55,33 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-// ---------- Serve Static Files ----------
-app.use(express.static(path.join(__dirname, "public")));
+
 
 // ---------- Public (Pre-login) Routes ----------
+
+
+app.get("/", preventAuthForLoggedIn, (req, res) => {
+    return res.redirect("/index");
+});
+
+app.get("/index", preventAuthForLoggedIn, (req, res) => {
+    return res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/register", preventAuthForLoggedIn, (req, res) => {
+    return res.sendFile(path.join(__dirname, "public", "register.html"));
+});
+
 app.use("/auth", authRoutes);
 
-app.get(["/", "/index"], (req, res) => {
-    if (req.session.userId) {
-        // Already logged in, redirect to dashboard
-        return res.redirect("/dashboard");
-    }
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+//----------Protected(Post - login) Routes----------
+app.use("/dashboard", requireLogin, dashboardRoutes);
+app.use("/manageDrives", requireLogin, driveRoutes);
+app.use("/imageSearch", requireLogin, imageRoutes);
 
-app.get("/register", (req, res) => {
-    if (req.session.userId) {
-        // Already logged in, redirect to dashboard
-        return res.redirect("/dashboard");
-    }
-    res.sendFile(path.join(__dirname, "public", "register.html"));
-});
 
-app.get("/dashboard", requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-// ---------- Protected (Post-login) Routes ----------
-// app.use("/dashboard", requireLogin, dashboardRoutes);
-// app.use("/manageDrives", requireLogin, driveRoutes);
-// app.use("/imageSearch", requireLogin, imageRoutes);
+// ---------- Serve Static Files ----------
+app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- Start Server ----------
 app.listen(PORT, () => {
