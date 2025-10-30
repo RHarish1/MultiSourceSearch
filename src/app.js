@@ -10,13 +10,14 @@ import session from "express-session";
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
 import preventAuthForLoggedIn from "../middleware/preventAuthForLoggedIn.js";
-
+import { sequelize } from "../models/postgres/sequelize.js";
 // Import route modules
 import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import driveRoutes from "./routes/manageDrives.js";
 import imageRoutes from "./routes/imageSearch.js";
 
+await sequelize.sync();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

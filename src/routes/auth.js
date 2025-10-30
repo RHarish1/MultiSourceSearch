@@ -1,76 +1,55 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { db } from '../../models/postgres/index.js';
-const { sequelize, User, Drive } = db;
+const { User, Drive } = db;
 import { Op } from 'sequelize';
 import requireLogin from '../../middleware/requireLogin.js';
+import dotenv from 'dotenv';
+import { google } from 'googleapis';
+import fetch from 'node-fetch';
+import { encrypt, decrypt } from '../../utils/cryptoUtils.js';
+dotenv.config();
+
 const router = express.Router();
 
-// --- Register ---
-// POST /auth/register
-// Body: { username, email, password }
+
+// ===================== REGISTER =====================
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // Check if username or email already exists
         const existingUser = await User.findOne({
-            where: {
-                [Op.or]: [
-                    { username },
-                    { email }
-                ]
-            }
+            where: { [Op.or]: [{ username }, { email }] }
         });
 
-        if (existingUser) {
-            if (existingUser.username === username) {
-                return res.status(400).json({ error: 'Username already taken' });
-            } else {
-                return res.status(400).json({ error: 'Email already in use' });
-            }
-        }
+        if (existingUser)
+            return res.status(400).json({ error: existingUser.username === username ? 'Username already taken' : 'Email already in use' });
 
         const passwordHash = await bcrypt.hash(password, 10);
-
         const user = await User.create({ username, email, passwordHash });
 
         req.session.userId = user.id;
-
-        res.json({ message: 'Registered', userId: user.id });
-
+        res.json({ message: 'Registered successfully', userId: user.id });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Registration failed' });
     }
 });
 
-// --- Login ---
-// POST /auth/login
-// Body: { login, password }  // login can be username or email
+
+// ===================== LOGIN =====================
 router.post('/login', async (req, res) => {
     try {
         const { login, password } = req.body;
-
-        // Find user by username OR email
         const user = await User.findOne({
-            where: {
-                [Op.or]: [
-                    { username: login },
-                    { email: login }
-                ]
-            }
+            where: { [Op.or]: [{ username: login }, { email: login }] }
         });
 
-        if (!user) return res.status(400).json({ error: 'Invalid username/email or password' });
-
-        // Check if user has a password
-        if (!user.passwordHash) {
-            return res.status(400).json({ error: 'This user cannot log in with password' });
-        }
+        if (!user || !user.passwordHash)
+            return res.status(400).json({ error: 'Invalid credentials' });
 
         const match = await bcrypt.compare(password, user.passwordHash);
-        if (!match) return res.status(400).json({ error: 'Invalid username/email or password' });
+        if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
         req.session.userId = user.id;
         res.json({ message: 'Logged in', userId: user.id });
@@ -80,28 +59,150 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// --- Logout ---
+
+// ===================== LOGOUT =====================
 router.post('/logout', requireLogin, (req, res) => {
     req.session.destroy(err => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Logout failed' });
-        }
+        if (err) return res.status(500).json({ error: 'Logout failed' });
         res.clearCookie('connect.sid');
         res.json({ message: 'Logged out' });
     });
 });
 
-// --- Get current logged-in user ---
+
+// ===================== CURRENT USER =====================
 router.get('/me', requireLogin, async (req, res) => {
     try {
         const user = await User.findByPk(req.session.userId, {
             attributes: ['id', 'username', 'email']
         });
-        res.json({ user });
+
+        // Check if drives exist
+        const drives = await Drive.findAll({
+            where: { userId: user.id },
+            attributes: ['provider', 'email', 'createdAt']
+        });
+
+        const linked = {
+            google: drives.some(d => d.provider === 'google'),
+            onedrive: drives.some(d => d.provider === 'onedrive')
+        };
+
+        res.json({ user, linked });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
+router.get('/drives', requireLogin, async (req, res) => {
+    try {
+        const drives = await Drive.findAll({ where: { userId: req.session.userId } });
+
+        const decryptedDrives = drives.map(drive => ({
+            provider: drive.provider,
+            email: drive.email,
+            expiry: drive.expiry,
+            accessToken: decrypt(drive.accessToken),
+            refreshToken: decrypt(drive.refreshToken),
+        }));
+
+        res.json({ drives: decryptedDrives });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to retrieve drives' });
+    }
+});
+
+
+// ======================================================
+//                GOOGLE DRIVE OAUTH
+// ======================================================
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
+
+// Step 1: Redirect to Google Consent Screen
+router.get('/google', requireLogin, (req, res) => {
+    const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: [
+            'https://www.googleapis.com/auth/drive.readonly',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+        ]
+    });
+    res.redirect(authUrl);
+});
+
+// Step 2: Google OAuth Callback
+router.get('/google/callback', requireLogin, async (req, res) => {
+    try {
+        const { code } = req.query;
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+        const { data } = await oauth2.userinfo.get();
+
+        await Drive.upsert({
+            userId: req.session.userId,
+            provider: 'google',
+            email: data.email,
+            accessToken: encrypt(tokens.access_token),
+            refreshToken: encrypt(tokens.refresh_token),
+            expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null
+        });
+
+        res.redirect('/manageDrives');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Google OAuth failed');
+    }
+});
+
+
+// ======================================================
+//                ONEDRIVE OAUTH
+// ======================================================
+router.get('/onedrive', requireLogin, (req, res) => {
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.ONEDRIVE_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(process.env.ONEDRIVE_REDIRECT_URI)}&scope=Files.ReadWrite.All offline_access User.Read`;
+    res.redirect(authUrl);
+});
+
+router.get('/onedrive/callback', requireLogin, async (req, res) => {
+    try {
+        const { code } = req.query;
+
+        const tokenRes = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: process.env.ONEDRIVE_CLIENT_ID,
+                client_secret: process.env.ONEDRIVE_CLIENT_SECRET,
+                code,
+                redirect_uri: process.env.ONEDRIVE_REDIRECT_URI,
+                grant_type: 'authorization_code'
+            })
+        });
+
+        const tokens = await tokenRes.json();
+
+        await Drive.upsert({
+            userId: req.session.userId,
+            provider: 'onedrive',
+            email: null,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
+        });
+
+        res.redirect('/manageDrives');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('OneDrive OAuth failed');
     }
 });
 
