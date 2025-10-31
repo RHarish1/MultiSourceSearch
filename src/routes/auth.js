@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import { encrypt, decrypt } from '../../utils/cryptoUtils.js';
+import refreshDrives from '../../middleware/refreshDrives.js';
 dotenv.config();
 
 const router = express.Router();
@@ -29,7 +30,7 @@ router.post('/register', async (req, res) => {
         const user = await User.create({ username, email, passwordHash });
 
         req.session.userId = user.id;
-        res.json({ message: 'Registered successfully', userId: user.id });
+        // res.json({ message: 'Registered successfully', userId: user.id });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Registration failed' });
@@ -52,7 +53,7 @@ router.post('/login', async (req, res) => {
         if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
         req.session.userId = user.id;
-        res.json({ message: 'Logged in', userId: user.id });
+        // res.json({ message: 'Logged in', userId: user.id });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });
@@ -95,7 +96,7 @@ router.get('/me', requireLogin, async (req, res) => {
     }
 });
 
-router.get('/drives', requireLogin, async (req, res) => {
+router.get('/drives', requireLogin, refreshDrives, async (req, res) => {
     try {
         const drives = await Drive.findAll({ where: { userId: req.session.userId } });
 
@@ -125,7 +126,7 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 // Step 1: Redirect to Google Consent Screen
-router.get('/google', requireLogin, (req, res) => {
+router.get('/google', requireLogin, refreshDrives, (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: [
@@ -138,7 +139,7 @@ router.get('/google', requireLogin, (req, res) => {
 });
 
 // Step 2: Google OAuth Callback
-router.get('/google/callback', requireLogin, async (req, res) => {
+router.get('/google/callback', requireLogin, refreshDrives, async (req, res) => {
     try {
         const { code } = req.query;
         const { tokens } = await oauth2Client.getToken(code);
@@ -167,12 +168,13 @@ router.get('/google/callback', requireLogin, async (req, res) => {
 // ======================================================
 //                ONEDRIVE OAUTH
 // ======================================================
-router.get('/onedrive', requireLogin, (req, res) => {
+
+router.get('/onedrive', requireLogin, refreshDrives, (req, res) => {
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.ONEDRIVE_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(process.env.ONEDRIVE_REDIRECT_URI)}&scope=Files.ReadWrite.All offline_access User.Read`;
     res.redirect(authUrl);
 });
 
-router.get('/onedrive/callback', requireLogin, async (req, res) => {
+router.get('/onedrive/callback', requireLogin, refreshDrives, async (req, res) => {
     try {
         const { code } = req.query;
 
@@ -194,8 +196,8 @@ router.get('/onedrive/callback', requireLogin, async (req, res) => {
             userId: req.session.userId,
             provider: 'onedrive',
             email: null,
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
+            accessToken: encrypt(tokens.access_token),
+            refreshToken: encrypt(tokens.refresh_token),
             expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
         });
 
