@@ -12,5 +12,6 @@ export const Tag = sequelize.define('Tag', {
         allowNull: false,
     },
 }, {
+    tableName: 'tags',
     timestamps: true,
 });

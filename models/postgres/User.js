@@ -5,8 +5,6 @@ export const User = sequelize.define('User', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
-        unique: true,
         primaryKey: true,
     },
     username: {
@@ -22,5 +20,8 @@ export const User = sequelize.define('User', {
     passwordHash: {
         type: DataTypes.STRING,
         allowNull: true,
-    }
+    },
+}, {
+    tableName: 'users',
+    timestamps: true,
 });

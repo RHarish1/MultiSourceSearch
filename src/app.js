@@ -16,6 +16,7 @@ import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import driveRoutes from "./routes/manageDrives.js";
 import imageRoutes from "./routes/imageSearch.js";
+import imageHandlerRoutes from "./routes/images.js";
 
 await sequelize.sync();
 
@@ -79,7 +80,7 @@ app.use("/auth", authRoutes);
 app.use("/dashboard", requireLogin, dashboardRoutes);
 app.use("/manageDrives", requireLogin, driveRoutes);
 app.use("/imageSearch", requireLogin, imageRoutes);
-
+app.use("/images", requireLogin, imageHandlerRoutes);
 
 // ---------- Serve Static Files ----------
 app.use(express.static(path.join(__dirname, "public")));

@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manage Images</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 
 <body class="bg-light">
@@ -18,12 +18,89 @@
 
     <div class="container mt-5">
         <h3 class="mb-4">Your Uploaded Images</h3>
+
+        <div id="driveSection" class="mb-4">
+            <h5>Linked Drives</h5>
+            <div id="driveList" class="d-flex flex-wrap gap-2"></div>
+            <button id="uploadBtn" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                Upload New Image
+            </button>
+        </div>
+
+        <hr />
+
         <div id="imageList" class="row g-3"></div>
     </div>
 
+    <!-- ================= Upload Modal ================= -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel">Upload Image</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="provider" class="form-label">Choose Drive</label>
+                            <select id="provider" name="provider" class="form-select" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select Image</label>
+                            <input type="file" id="file" name="file" accept="image/*" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags (comma-separated)</label>
+                            <input type="text" id="tags" name="tags" placeholder="e.g. nature, sunset"
+                                class="form-control" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
+        async function fetchDrives() {
+            const res = await fetch('/auth/drives');
+            const data = await res.json();
+            const list = document.getElementById('driveList');
+            const providerSelect = document.getElementById('provider');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            list.innerHTML = '';
+            providerSelect.innerHTML = '';
+
+            if (!data.drives || data.drives.length === 0) {
+                list.innerHTML = '<p class="text-muted">No drives linked.</p>';
+                uploadBtn.disabled = true;
+                return [];
+            }
+
+            data.drives.forEach((d) => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-success';
+                badge.textContent = `${d.provider.toUpperCase()} (${d.email || 'No email'})`;
+                list.appendChild(badge);
+
+                const opt = document.createElement('option');
+                opt.value = d.provider;
+                opt.textContent = `${d.provider.toUpperCase()} (${d.email || 'N/A'})`;
+                providerSelect.appendChild(opt);
+            });
+
+            uploadBtn.disabled = false;
+            return data.drives;
+        }
+
         async function fetchImages() {
-            const res = await fetch('/api/images'); // protected route
+            const res = await fetch('/images');
             if (!res.ok) return (window.location.href = '/dashboard');
             const images = await res.json();
             const list = document.getElementById('imageList');
@@ -34,24 +111,39 @@
                 return;
             }
 
-            images.forEach(img => {
+            images.forEach((img) => {
                 const col = document.createElement('div');
                 col.className = 'col-md-3';
                 col.innerHTML = `
-                    <div class="card shadow-sm">
-                        <img src="${img.url}" class="card-img-top" alt="${img.name}">
-                        <div class="card-body">
-                            <p class="card-text">${img.name}</p>
-                            <button class="btn btn-sm btn-danger" onclick="deleteImage('${img.id}')">Delete</button>
-                        </div>
-                    </div>
-                `;
+                <div class="card-body text-center">
+                <p class="card-text fw-semibold">${img.fileName}</p>
+                <small class="text-muted">${img.tags.join(', ')}</small><br>
+                <a href="${img.fileUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                    View Image
+                </a>
+                <button class="btn btn-sm btn-warning ms-2" onclick="editImage('${img.id}')">Edit</button>
+                <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${img.id}')">Delete</button>
+                </div>
+
+        `;
                 list.appendChild(col);
             });
         }
 
         async function deleteImage(id) {
-            await fetch(`/api/images/${id}`, { method: 'DELETE' });
+            if (!confirm('Delete this image?')) return;
+            await fetch(`/images/${id}`, { method: 'DELETE' });
+            fetchImages();
+        }
+
+        async function editImage(id) {
+            const newName = prompt('Enter new name:');
+            const newTags = prompt('Enter new tags (comma-separated):');
+            await fetch(`/images/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName: newName, tags: newTags }),
+            });
             fetchImages();
         }
 
@@ -60,7 +152,44 @@
             window.location.href = '/';
         });
 
-        fetchImages();
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const name = formData.get('fileName').trim();
+            const tags = formData.get('tags').split(',').map(t => t.trim()).filter(Boolean);
+
+            if (!name) {
+                alert('Image name cannot be empty.');
+                return;
+            }
+            if (tags.length === 0) {
+                alert('Please provide at least one tag.');
+                return;
+            }
+
+            formData.set('tags', tags.join(','));
+
+            const res = await fetch('/images/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert('Image uploaded successfully!');
+                e.target.reset();
+                fetchImages();
+                bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+        });
+
+
+        (async () => {
+            await fetchDrives();
+            await fetchImages();
+        })();
     </script>
 </body>
 

@@ -11,20 +11,38 @@ export const Drive = sequelize.define('Drive', {
         type: DataTypes.ENUM('google', 'onedrive'),
         allowNull: false,
     },
-    accessToken: DataTypes.TEXT,
-    refreshToken: DataTypes.TEXT,
-    expiry: DataTypes.DATE,
-    email: DataTypes.STRING,
-    rootFolderId: DataTypes.STRING,
+    accessToken: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+    },
+    refreshToken: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+    },
+    expiry: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    rootFolderId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id',
+        },
+        onDelete: 'CASCADE',
     },
 }, {
-    tableName: 'Drives',
+    tableName: 'drives',
     timestamps: true,
-
-    // 👇 Add this block
     indexes: [
         {
             unique: true,

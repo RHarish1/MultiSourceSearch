@@ -7,6 +7,24 @@ export const Image = sequelize.define('Image', {
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4,
     },
+    userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id',
+        },
+        onDelete: 'CASCADE',
+    },
+    driveId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: 'drives',
+            key: 'id',
+        },
+        onDelete: 'CASCADE',
+    },
     fileId: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -32,7 +50,9 @@ export const Image = sequelize.define('Image', {
     },
     uploadedAt: {
         type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
     },
 }, {
+    tableName: 'images',
     timestamps: true,
 });
