@@ -27,29 +27,36 @@ const __dirname = path.resolve();
 // --- Redis Session Store Setup ---
 
 const redisClient = createClient({
-    url: process.env.REDIS_URL || "redis://localhost:6379", // Render gives you this
+    url: process.env.REDIS_URL || "redis://localhost:6379",
     socket: {
-        tls: process.env.REDIS_URL.startsWith("rediss://"), // Enable TLS for secure connection
-        rejectUnauthorized: false, // Required for Render's managed Redis
+        tls: process.env.REDIS_URL?.startsWith("rediss://"),
+        rejectUnauthorized: false,
     },
 });
+
 redisClient.on("error", (err) => console.error("❌ Redis error:", err));
-await redisClient.connect().catch(console.error);
-const RedisStore = connectRedis(session);
+await redisClient.connect();
+
+const redisStore = new RedisStore({
+    client: redisClient,
+    prefix: "sess:",
+});
+
 app.use(
     session({
-        store: new RedisStore({ client: redisClient }),
+        store: redisStore,
         secret: process.env.SESSION_SECRET || "supersecret",
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: process.env.NODE_ENV === "production",  // true if behind HTTPS
+            secure: process.env.NODE_ENV === "production",
             httpOnly: true,
-            samesite: "lax",
-            maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
-        }
+            sameSite: "lax",
+            maxAge: 1000 * 60 * 60 * 24 * 7,
+        },
     })
 );
+
 // ---------- Middleware Setup ----------
 app.use(
     helmet({
