@@ -27,11 +27,15 @@ const __dirname = path.resolve();
 // --- Redis Session Store Setup ---
 
 const redisClient = createClient({
-    url: process.env.REDIS_URL || "redis://localhost:6379"
+    url: process.env.REDIS_URL || "redis://localhost:6379", // Render gives you this
+    socket: {
+        tls: process.env.REDIS_URL.startsWith("rediss://"), // Enable TLS for secure connection
+        rejectUnauthorized: false, // Required for Render's managed Redis
+    },
 });
-
+redisClient.on("error", (err) => console.error("❌ Redis error:", err));
 await redisClient.connect().catch(console.error);
-
+const RedisStore = connectRedis(session);
 app.use(
     session({
         store: new RedisStore({ client: redisClient }),
@@ -39,10 +43,10 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: false, // true if behind HTTPS
+            secure: process.env.NODE_ENV === "production",  // true if behind HTTPS
             httpOnly: true,
             samesite: "lax",
-            maxAge: 1000 * 60 * 60 * 24 // 1 day
+            maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
         }
     })
 );
