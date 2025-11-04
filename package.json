@@ -1,17 +1,19 @@
 {
   "name": "multisearch",
   "version": "1.0.0",
-  "description": "",
+  "description": "Multi-source search app using Express + Redis + Sequelize",
   "main": "app.js",
   "type": "module",
   "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RHarish1/MultiSourceSearch.git"
   },
-  "author": "",
+  "author": "Harish Ramaswamy",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/RHarish1/MultiSourceSearch/issues"
@@ -29,7 +31,6 @@
     "googleapis": "^164.1.0",
     "helmet": "^8.1.0",
     "morgan": "^1.10.1",
-    "nodemon": "^3.1.10",
     "passport": "^0.7.0",
     "passport-google-oauth": "^2.0.0",
     "pg": "^8.16.3",
@@ -37,5 +38,11 @@
     "redis": "^5.9.0",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
