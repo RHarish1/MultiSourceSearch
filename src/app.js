@@ -24,7 +24,7 @@ await sequelize.sync();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const __dirname = path.resolve();
-
+const isProd = process.env.NODE_ENV === "production";
 // ---------- Redis Setup ----------
 const redisClient = createClient({
     url: process.env.REDIS_URL || "redis://localhost:6379",
@@ -67,9 +67,9 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: true,          // Render uses HTTPS
+            secure: isProd,          // Render uses HTTPS
             httpOnly: true,
-            sameSite: "none",      // required for cross-site cookies
+            sameSite: isProd ? "none" : "lax",      // required for cross-site cookies
             maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
         },
     })
