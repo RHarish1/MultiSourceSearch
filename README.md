@@ -21,7 +21,7 @@ Users can:
 
 ### 📊 Database Schema (PostgreSQL + Sequelize ORM)
 
-The utilized schema (shown in ![Database Schema](./assets/schema.svg)):
+ ![Database Schema](./assets/schema.svg)
 
 | Table          | Description                                                                                 |
 | -------------- | ------------------------------------------------------------------------------------------- |
