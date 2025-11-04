@@ -3,8 +3,8 @@ import multer from 'multer';
 import { Op } from 'sequelize';
 import { db } from '../../models/postgres/index.js';
 import { uploadToDrive, deleteFromDrive } from '../../utils/driveUtils.js';
-import requireLogin from '../../middleware/requireLogin.js'; // ✅ no destructure
-import refreshDrives from '../../middleware/refreshDrives.js'; // optional auto-refresh
+import requireLogin from '../../middleware/requireLogin.js';
+import refreshDrives from '../../middleware/refreshDrives.js'; // auto-refresh
 
 
 const router = express.Router();
@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const { Image, Tag, ImageTag, Drive } = db;
 
 // ======================================================
-//              GET IMAGES / SEARCH
+//              GET IMAGES / 
 // ======================================================
 router.get('/', requireLogin, refreshDrives, async (req, res) => {
 
@@ -44,12 +44,69 @@ router.get('/', requireLogin, refreshDrives, async (req, res) => {
 });
 
 // ======================================================
+//              GET IMAGES / SEARCH
+// ======================================================
+router.get('/search', requireLogin, async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const q = (req.query.q || '').trim();
+        const and = req.query.and === 'true';
+
+        if (!userId) return res.status(401).json({ error: 'Not logged in' });
+        if (!q) return res.status(400).json({ error: 'Missing query' });
+
+        // Split query into multiple tokens if comma/space-separated
+        const tokens = q.split(/[, ]+/).filter(Boolean);
+
+        // Main conditions
+        const fileNameConditions = tokens.map(t => ({
+            fileName: { [Op.iLike]: `%${t}%` },
+        }));
+
+        const tagConditions = tokens.map(t => ({
+            '$Tags.name$': { [Op.iLike]: `%${t}%` },
+        }));
+
+        // Combine conditions (AND vs OR)
+        const whereClause = and
+            ? { [Op.and]: [{ userId }, { [Op.or]: [...fileNameConditions, ...tagConditions] }] }
+            : { [Op.and]: [{ userId }, { [Op.or]: [...fileNameConditions, ...tagConditions] }] };
+
+        const images = await Image.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: Tag,
+                    through: { model: ImageTag, attributes: [] },
+                    attributes: ['name'],
+                },
+            ],
+            distinct: true,
+        });
+
+        // Transform output
+        const result = images.map(img => ({
+            id: img.id,
+            fileName: img.fileName,
+            fileUrl: img.fileUrl,
+            tags: img.Tags.map(t => t.name),
+        }));
+
+        res.json({ images: result });
+    } catch (err) {
+        console.error('Search error:', err);
+        res.status(500).json({ error: 'Search failed' });
+    }
+});
+
+
+// ======================================================
 //                  UPLOAD IMAGE
 // ======================================================
 router.post('/upload', requireLogin, upload.single('file'), async (req, res) => {
     try {
         const userId = req.session.userId;
-        const { provider, tags } = req.body;
+        const { provider, tags, fileName } = req.body;
 
         const drive = await Drive.findOne({ where: { userId, provider } });
         if (!drive) return res.status(400).json({ error: 'Drive not linked.' });
@@ -63,7 +120,7 @@ router.post('/upload', requireLogin, upload.single('file'), async (req, res) => 
             driveId: drive.id,
             provider,
             fileId: uploaded.id,
-            fileName: req.file.originalname,
+            fileName: fileName || req.file.originalname,
             fileUrl: uploaded.url,
             uploadedAt: new Date(),
         });
@@ -81,6 +138,8 @@ router.post('/upload', requireLogin, upload.single('file'), async (req, res) => 
         res.status(500).json({ error: 'Upload failed' });
     }
 });
+
+
 
 // ======================================================
 //                  EDIT IMAGE
@@ -111,6 +170,8 @@ router.put('/:id', requireLogin, async (req, res) => {
     }
 });
 
+
+
 // ======================================================
 //                  DELETE IMAGE
 // ======================================================
@@ -132,5 +193,7 @@ router.delete('/:id', requireLogin, async (req, res) => {
         res.status(500).json({ error: 'Delete failed' });
     }
 });
+
+
 
 export default router;

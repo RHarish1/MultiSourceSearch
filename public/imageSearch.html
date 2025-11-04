@@ -28,6 +28,15 @@
         </div>
 
         <hr />
+        <div class="input-group mb-4">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search by tags (comma-separated)">
+            <div class="input-group-text">
+                <input class="form-check-input mt-0" type="checkbox" id="andSearch" />
+                <label for="andSearch" class="ms-2 mb-0">AND Search</label>
+            </div>
+            <button id="searchBtn" class="btn btn-outline-primary">Search</button>
+            <button id="clearBtn" class="btn btn-outline-secondary">Clear</button>
+        </div>
 
         <div id="imageList" class="row g-3"></div>
     </div>
@@ -51,9 +60,13 @@
                             <input type="file" id="file" name="file" accept="image/*" class="form-control" required />
                         </div>
                         <div class="mb-3">
+                            <label for="fileName" class="form-label">Image Name</label>
+                            <input type="text" id="fileName" name="fileName" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
                             <label for="tags" class="form-label">Tags (comma-separated)</label>
                             <input type="text" id="tags" name="tags" placeholder="e.g. nature, sunset"
-                                class="form-control" />
+                                class="form-control" required />
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -185,11 +198,53 @@
             }
         });
 
+        document.getElementById('searchBtn').addEventListener('click', async () => {
+            const query = document.getElementById('searchInput').value.trim();
+            const andSearch = document.getElementById('andSearch').checked;
+
+            if (!query) {
+                alert('Please enter at least one tag to search.');
+                return;
+            }
+
+            const res = await fetch(`/images/search?q=${encodeURIComponent(query)}&and=${andSearch}`);
+            const data = await res.json();
+            const images = data.images || [];
+            const list = document.getElementById('imageList');
+            list.innerHTML = '';
+
+            if (images.length === 0) {
+                list.innerHTML = `<p class="text-muted">No images found matching "${query}".</p>`;
+                return;
+            }
+
+            images.forEach((img) => {
+                const col = document.createElement('div');
+                col.className = 'col-md-3';
+                col.innerHTML = `
+      <div class="card-body text-center">
+        <p class="card-text fw-semibold">${img.fileName}</p>
+        <small class="text-muted">${img.tags.join(', ')}</small><br>
+        <a href="${img.fileUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">View Image</a>
+        <button class="btn btn-sm btn-warning ms-2" onclick="editImage('${img.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${img.id}')">Delete</button>
+      </div>
+    `;
+                list.appendChild(col);
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('andSearch').checked = false;
+            fetchImages();
+        });
 
         (async () => {
             await fetchDrives();
             await fetchImages();
         })();
+
     </script>
 </body>
 
