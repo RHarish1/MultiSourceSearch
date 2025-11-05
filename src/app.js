@@ -8,9 +8,9 @@ import path from "path";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
-import { sequelize } from "../models/postgres/sequelize.js";
-import requireLogin from "../middleware/requireLogin.js";
-import preventAuthForLoggedIn from "../middleware/preventAuthForLoggedIn.js";
+import { sequelize } from "./models/postgres/sequelize.js";
+import requireLogin from "./middleware/requireLogin.js";
+import preventAuthForLoggedIn from "./middleware/preventAuthForLoggedIn.js";
 
 // Import routes
 import authRoutes from "./routes/auth.js";

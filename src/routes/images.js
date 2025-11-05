@@ -1,10 +1,10 @@
 import express from 'express';
 import multer from 'multer';
 import { Op } from 'sequelize';
-import { db } from '../../models/postgres/index.js';
-import { uploadToDrive, deleteFromDrive } from '../../utils/driveUtils.js';
-import requireLogin from '../../middleware/requireLogin.js';
-import refreshDrives from '../../middleware/refreshDrives.js'; // auto-refresh
+import { db } from '../models/postgres/index.js';
+import { uploadToDrive, deleteFromDrive } from '../utils/driveUtils.js';
+import requireLogin from '../middleware/requireLogin.js';
+import refreshDrives from '../middleware/refreshDrives.js'; // auto-refresh
 
 
 const router = express.Router();

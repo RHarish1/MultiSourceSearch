@@ -1,14 +1,14 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { db } from '../../models/postgres/index.js';
+import { db } from '../models/postgres/index.js';
 const { User, Drive } = db;
 import { Op } from 'sequelize';
-import requireLogin from '../../middleware/requireLogin.js';
+import requireLogin from '../middleware/requireLogin.js';
 import dotenv from 'dotenv';
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
-import { encrypt, decrypt } from '../../utils/cryptoUtils.js';
-import refreshDrives from '../../middleware/refreshDrives.js';
+import { encrypt, decrypt } from '../utils/cryptoUtils.js';
+import refreshDrives from '../middleware/refreshDrives.js';
 dotenv.config();
 
 const router = express.Router();
