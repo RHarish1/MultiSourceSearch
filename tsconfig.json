@@ -1,0 +1,70 @@
+{
+  "compilerOptions": {
+    // ===============================
+    // 🗂 File Layout
+    // ===============================
+    "rootDir": "./src",
+    "outDir": "./dist",
+    // ===============================
+    // ⚙️ Environment
+    // ===============================
+    "target": "ES2022", // newer Node syntax (top-level await etc.)
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ESNext"
+    ],
+    "types": [
+      "node"
+    ],
+    "resolveJsonModule": true,
+    // ===============================
+    // 📚 Import Aliases
+    // ===============================
+    "baseUrl": "./src",
+    "paths": {
+      "@routes/*": [
+        "routes/*"
+      ],
+      "@models/*": [
+        "models/*"
+      ],
+      "@middleware/*": [
+        "middleware/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ]
+    },
+    "ignoreDeprecations": "6.0", // ✅ silence baseUrl deprecation notice
+    // ===============================
+    // 🧠 Type Checking
+    // ===============================
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    // ===============================
+    // ⚡ Build Outputs
+    // ===============================
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    // ===============================
+    // 🧩 Miscellaneous
+    // ===============================
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": false,
+    "verbatimModuleSyntax": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -2,11 +2,12 @@
   "name": "multisearch",
   "version": "1.0.0",
   "description": "Multi-source search app using Express + Redis + Sequelize",
-  "main": "app.js",
+  "main": "dist/app.js",
   "type": "module",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "dev": "nodemon --watch src --ext ts,js,json --exec tsx src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -38,10 +39,22 @@
     "pg-hstore": "^2.3.4",
     "redis": "^5.9.0",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "source-map-loader": "^5.0.0",
+    "sqlite3": "^5.1.7",
+    "ts-loader": "^9.5.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/express-session": "^1.18.2",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.x"
