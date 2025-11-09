@@ -149,8 +149,8 @@ router.get("/google/callback", requireLogin, refreshDrives, async (req, res) => 
             userId: req.session.userId,
             provider: "google",
             email: data.email,
-            accessToken: encrypt(tokens.access_token ?? ""),
-            refreshToken: encrypt(tokens.refresh_token ?? ""),
+            accessToken: encrypt(tokens.access_token ?? "") ?? "",
+            refreshToken: encrypt(tokens.refresh_token ?? "") ?? "",
             expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         });
         res.redirect("/manageDrives");
@@ -195,8 +195,8 @@ router.get("/onedrive/callback", requireLogin, refreshDrives, async (req, res) =
             userId: req.session.userId,
             provider: "onedrive",
             email: userData.mail ?? userData.userPrincipalName ?? null,
-            accessToken: encrypt(tokens.access_token),
-            refreshToken: encrypt(tokens.refresh_token ?? ""),
+            accessToken: encrypt(tokens.access_token) ?? "",
+            refreshToken: encrypt(tokens.refresh_token ?? "") ?? "",
             expiry: tokens.expires_in
                 ? new Date(Date.now() + tokens.expires_in * 1000)
                 : null,

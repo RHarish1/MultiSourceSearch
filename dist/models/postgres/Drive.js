@@ -14,11 +14,11 @@ Drive.init({
     },
     accessToken: {
         type: DataTypes.TEXT,
-        allowNull: true,
+        allowNull: false,
     },
     refreshToken: {
         type: DataTypes.TEXT,
-        allowNull: true,
+        allowNull: false,
     },
     expiry: {
         type: DataTypes.DATE,
