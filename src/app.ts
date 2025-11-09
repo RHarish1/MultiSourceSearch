@@ -105,5 +105,5 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- Start ----------
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log("🚀 Server running on https://multisourcesearch.onrender.com/");
 });

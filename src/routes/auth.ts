@@ -10,7 +10,7 @@ import refreshDrives from "../middleware/refreshDrives.js";
 import { AuthenticatedRequest } from "../types/CustomRequest.js";
 import { db } from "../models/postgres/index.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 const { User, Drive } = db;
 const router = express.Router();
 interface MicrosoftTokenResponse {
