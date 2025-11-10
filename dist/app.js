@@ -8,7 +8,6 @@ import path from "path";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
-import { sequelize } from "./models/postgres/sequelize.js";
 import requireLogin from "./middleware/requireLogin.js";
 import preventAuthForLoggedIn from "./middleware/preventAuthForLoggedIn.js";
 // Import routes
@@ -18,10 +17,10 @@ import driveRoutes from "./routes/manageDrives.js";
 import imageRoutes from "./routes/imageSearch.js";
 import imageHandlerRoutes from "./routes/images.js";
 // ---------- Init ----------
-await sequelize.sync();
 const app = express();
 const PORT = process.env["PORT"] || 3000;
 const __dirname = path.resolve();
+const isProd = process.env["NODE_ENV"] === "production";
 const useTLS = process.env["REDIS_TLS"] === "true";
 // ---------- Redis Setup ----------
 const redisClient = createClient({
@@ -63,10 +62,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false,
+        secure: isProd, // Render uses HTTPS
         httpOnly: true,
-        sameSite: "lax",
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        sameSite: isProd ? "none" : "lax", // required for cross-site cookies
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     },
 }));
 // ---------- Routes ----------
@@ -84,6 +83,6 @@ app.use("/images", requireLogin, imageHandlerRoutes);
 // app.use(express.static(path.join(__dirname, "public")));
 // ---------- Start ----------
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log("🚀 Server running on https://multisourcesearch.onrender.com/");
 });
 //# sourceMappingURL=app.js.map

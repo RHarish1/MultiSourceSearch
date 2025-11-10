@@ -1,34 +1,36 @@
 import express from "express";
 import multer from "multer";
-import { Op } from "sequelize";
-import { db } from "../models/postgres/index.js";
+import { prisma } from "../prisma.js";
 import { uploadToDrive, deleteFromDrive } from "../utils/driveUtils.js";
 import requireLogin from "../middleware/requireLogin.js";
 import refreshDrives from "../middleware/refreshDrives.js";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-const { Image, Tag, ImageTag, Drive } = db;
 // ======================================================
 //                  GET IMAGES
 // ======================================================
 router.get("/", requireLogin, refreshDrives, async (req, res, _next) => {
     try {
-        const userId = req.session.userId ?? " ";
+        const userId = req.session.userId;
         const search = req.query["search"]?.trim();
         const where = { userId };
         if (search) {
-            where.fileName = { [Op.iLike]: `%${search}%` };
+            where.fileName = { contains: search, mode: "insensitive" };
         }
-        const images = await Image.findAll({
+        const images = await prisma.images.findMany({
             where,
-            include: [{ model: Tag, as: "tags", through: { attributes: [] } }],
-            order: [["createdAt", "DESC"]],
+            include: {
+                image_tags: {
+                    include: { tags: { select: { name: true } } },
+                },
+            },
+            orderBy: { createdAt: "desc" },
         });
         const result = images.map((img) => ({
             id: img.id,
             fileName: img.fileName,
             fileUrl: img.fileUrl,
-            tags: img.Tags?.map((t) => t.name) || [],
+            tags: img.image_tags.map((t) => t.tags.name),
         }));
         res.json(result);
     }
@@ -40,54 +42,62 @@ router.get("/", requireLogin, refreshDrives, async (req, res, _next) => {
 // ======================================================
 //                  SEARCH IMAGES
 // ======================================================
-router.get("/search", requireLogin, async (_req, res) => {
+router.get("/search", requireLogin, async (req, res) => {
     try {
-        const userId = _req.session.userId;
-        const q = (_req.query["q"] || "").trim();
-        const and = _req.query["and"] === "true";
-        if (!userId)
-            return res.status(401).json({ error: "Not logged in" });
+        const userId = req.session.userId;
+        const q = req.query["q"]?.trim() ?? "";
+        const and = req.query["and"] === "true";
         if (!q)
             return res.status(400).json({ error: "Missing query" });
         const tokens = q.split(/[, ]+/).filter(Boolean);
-        const fileNameConditions = tokens.map((t) => ({
-            fileName: { [Op.iLike]: `%${t}%` },
-        }));
-        const tagConditions = tokens.map((t) => ({
-            "$tags.name$": { [Op.iLike]: `%${t}%` },
-        }));
         const whereClause = {
-            [Op.and]: [
-                { userId },
-                and
-                    ? { [Op.and]: [...fileNameConditions, ...tagConditions] }
-                    : { [Op.or]: [...fileNameConditions, ...tagConditions] },
-            ],
+            userId,
+            ...(and
+                ? {
+                    AND: tokens.map((t) => ({
+                        OR: [
+                            { fileName: { contains: t, mode: "insensitive" } },
+                            {
+                                image_tags: {
+                                    some: {
+                                        tags: { name: { contains: t, mode: "insensitive" } },
+                                    },
+                                },
+                            },
+                        ],
+                    })),
+                }
+                : {
+                    OR: tokens.flatMap((t) => [
+                        { fileName: { contains: t, mode: "insensitive" } },
+                        {
+                            image_tags: {
+                                some: {
+                                    tags: { name: { contains: t, mode: "insensitive" } },
+                                },
+                            },
+                        },
+                    ]),
+                }),
         };
-        const images = await Image.findAll({
+        const images = await prisma.images.findMany({
             where: whereClause,
-            include: [
-                {
-                    model: Tag,
-                    through: { attributes: [] },
-                    as: "tags",
-                    attributes: ["name"],
-                },
-            ]
+            include: {
+                image_tags: { include: { tags: { select: { name: true } } } },
+            },
         });
         const result = images.map((img) => ({
             id: img.id,
             fileName: img.fileName,
             fileUrl: img.fileUrl,
-            tags: img.Tags?.map((t) => t.name) || [],
+            tags: img.image_tags.map((t) => t.tags.name),
         }));
-        res.json({ images: result });
+        return res.json({ images: result });
     }
     catch (err) {
         console.error("Search error:", err);
-        res.status(500).json({ error: "Search failed" });
+        return res.status(500).json({ error: "Search failed" });
     }
-    return;
 });
 // ======================================================
 //                  UPLOAD IMAGE
@@ -97,41 +107,50 @@ router.post("/upload", requireLogin, upload.single("file"), async (req, res) => 
         const userId = req.session.userId;
         const { tags, fileName } = req.body;
         const providerRaw = req.body.provider;
-        // narrow and validate provider type
         const isProvider = (p) => p === "google" || p === "onedrive";
         if (!isProvider(providerRaw)) {
             return res.status(400).json({ error: "Invalid or missing provider" });
         }
         const provider = providerRaw;
-        if (!req.file)
+        if (!req.file) {
             return res.status(400).json({ error: "No file uploaded." });
-        const drive = await Drive.findOne({ where: { userId, provider } });
+        }
+        const drive = await prisma.drives.findFirst({
+            where: { userId, provider },
+        });
         if (!drive)
             return res.status(400).json({ error: "Drive not linked." });
-        const uploaded = await uploadToDrive(userId ?? " ", provider, req.file);
-        const image = await Image.create({
-            userId: userId ?? " ",
-            driveId: drive.id,
-            provider,
-            fileId: uploaded.id,
-            fileName: fileName || req.file.originalname,
-            fileUrl: uploaded.url,
-            uploadedAt: new Date(),
+        const uploaded = await uploadToDrive(userId, provider, req.file);
+        const image = await prisma.images.create({
+            data: {
+                userId,
+                driveId: drive.id,
+                provider,
+                fileId: uploaded.id,
+                fileName: fileName || req.file.originalname,
+                fileUrl: uploaded.url,
+                uploadedAt: new Date(),
+            },
         });
         const tagNames = tags
             ? tags.split(",").map((t) => t.trim()).filter(Boolean)
             : [];
         for (const name of tagNames) {
-            const [tag] = await Tag.findOrCreate({ where: { name } });
-            await ImageTag.create({ imageId: image.id, tagId: tag.id });
+            const tag = await prisma.tags.upsert({
+                where: { name },
+                update: {},
+                create: { name, userId },
+            });
+            await prisma.image_tags.create({
+                data: { imageId: image.id, tagId: tag.id },
+            });
         }
-        res.json({ success: true, imageId: image.id });
+        return res.json({ success: true, imageId: image.id });
     }
     catch (err) {
         console.error("Error uploading image:", err);
-        res.status(500).json({ error: "Upload failed" });
+        return res.status(500).json({ error: "Upload failed" });
     }
-    return;
 });
 // ======================================================
 //                  EDIT IMAGE
@@ -140,42 +159,62 @@ router.put("/:id", requireLogin, async (req, res) => {
     try {
         const userId = req.session.userId;
         const { fileName, tags } = req.body;
-        const image = await Image.findOne({ where: { id: req.params["id"], userId } });
+        const id = req.params["id"];
+        if (!id) {
+            return res.status(400).json({ error: "Missing image id" });
+        }
+        const image = await prisma.images.findFirst({
+            where: { id, userId },
+        });
         if (!image)
             return res.status(404).json({ error: "Not found" });
-        if (fileName)
-            image.fileName = fileName;
-        await image.save();
-        await ImageTag.destroy({ where: { imageId: image.id } });
+        if (fileName) {
+            await prisma.images.update({
+                where: { id: image.id },
+                data: { fileName },
+            });
+        }
+        await prisma.image_tags.deleteMany({ where: { imageId: image.id } });
         const tagNames = tags
             ? tags.split(",").map((t) => t.trim()).filter(Boolean)
             : [];
         for (const name of tagNames) {
-            const [tag] = await Tag.findOrCreate({ where: { name } });
-            await ImageTag.create({ imageId: image.id, tagId: tag.id });
+            const tag = await prisma.tags.upsert({
+                where: { name },
+                update: {},
+                create: { name, userId },
+            });
+            await prisma.image_tags.create({
+                data: { imageId: image.id, tagId: tag.id },
+            });
         }
-        res.json({ success: true });
+        return res.json({ success: true });
     }
     catch (err) {
         console.error("Error editing image:", err);
-        res.status(500).json({ error: "Edit failed" });
+        return res.status(500).json({ error: "Edit failed" });
     }
-    return;
 });
 // ======================================================
 //                  DELETE IMAGE
 // ======================================================
-router.delete("/:id", requireLogin, async (_req, res) => {
+router.delete("/:id", requireLogin, async (req, res) => {
     try {
-        const userId = _req.session.userId;
-        const image = await Image.findOne({ where: { id: _req.params["id"], userId } });
+        const userId = req.session.userId;
+        const id = req.params["id"];
+        if (!id) {
+            return res.status(400).json({ error: "Missing image id" });
+        }
+        const image = await prisma.images.findFirst({
+            where: { id, userId },
+        });
         if (!image)
             return res.status(404).json({ error: "Not found" });
-        const drive = await Drive.findByPk(image.driveId);
+        const drive = await prisma.drives.findUnique({ where: { id: image.driveId } });
         if (drive) {
             try {
                 if (image.provider === "google" || image.provider === "onedrive") {
-                    await deleteFromDrive(userId ?? " ", image.provider, image.fileId);
+                    await deleteFromDrive(userId, image.provider, image.fileId);
                 }
                 else {
                     console.warn("Unknown provider, skipping drive delete:", image.provider);
@@ -185,15 +224,14 @@ router.delete("/:id", requireLogin, async (_req, res) => {
                 console.warn("Drive delete failed:", driveErr);
             }
         }
-        await ImageTag.destroy({ where: { imageId: image.id } });
-        await image.destroy();
-        res.json({ success: true });
+        await prisma.image_tags.deleteMany({ where: { imageId: image.id } });
+        await prisma.images.delete({ where: { id: image.id } });
+        return res.json({ success: true });
     }
     catch (err) {
         console.error("Error deleting image:", err);
-        res.status(500).json({ error: "Delete failed" });
+        return res.status(500).json({ error: "Delete failed" });
     }
-    return;
 });
 export default router;
 //# sourceMappingURL=images.js.map

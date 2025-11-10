@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/RHarish1/MultiSourceSearch#readme",
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "bootstrap": "^5.3.8",
@@ -52,6 +53,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.0",
     "nodemon": "^3.1.10",
+    "prisma": "^6.19.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

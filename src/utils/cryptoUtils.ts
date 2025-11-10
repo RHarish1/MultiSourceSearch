@@ -1,8 +1,7 @@
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
-dotenv.config();
-
+dotenv.config({ quiet: true });
 if (!process.env['ENCRYPTION_KEY']) {
     throw new Error("ENCRYPTION_KEY not set in environment variables");
 }
