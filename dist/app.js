@@ -20,13 +20,13 @@ import imageHandlerRoutes from "./routes/images.js";
 // ---------- Init ----------
 await sequelize.sync();
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env["PORT"] || 3000;
 const __dirname = path.resolve();
-const isProd = process.env.NODE_ENV === "production";
-const useTLS = process.env.REDIS_TLS === "true";
+const isProd = process.env["NODE_ENV"] === "production";
+const useTLS = process.env["REDIS_TLS"] === "true";
 // ---------- Redis Setup ----------
 const redisClient = createClient({
-    url: process.env.REDIS_URL || "redis://localhost:6379",
+    url: process.env["REDIS_URL"] || "redis://localhost:6379",
     socket: useTLS
         ? {
             tls: true,
@@ -60,7 +60,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // --- Session Middleware ---
 app.use(session({
     store: redisStore,
-    secret: process.env.SESSION_SECRET || "supersecret",
+    secret: process.env["SESSION_SECRET"] || "supersecret",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -72,17 +72,17 @@ app.use(session({
 }));
 // ---------- Routes ----------
 // Public pages
-app.get("/", preventAuthForLoggedIn, (req, res) => res.redirect("/index"));
-app.get("/index", preventAuthForLoggedIn, (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/register", preventAuthForLoggedIn, (req, res) => res.sendFile(path.join(__dirname, "public", "register.html")));
+app.get("/", preventAuthForLoggedIn, (_req, res) => res.redirect("/index"));
+app.get("/index", preventAuthForLoggedIn, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/register", preventAuthForLoggedIn, (_req, res) => res.sendFile(path.join(__dirname, "public", "register.html")));
 app.use("/auth", authRoutes);
 // Protected pages
 app.use("/dashboard", requireLogin, dashboardRoutes);
 app.use("/manageDrives", requireLogin, driveRoutes);
 app.use("/imageSearch", requireLogin, imageRoutes);
 app.use("/images", requireLogin, imageHandlerRoutes);
-// Static files
-app.use(express.static(path.join(__dirname, "public")));
+// Static files, Remove comment to serve static files if needed
+// app.use(express.static(path.join(__dirname, "public")));
 // ---------- Start ----------
 app.listen(PORT, () => {
     console.log("🚀 Server running on https://multisourcesearch.onrender.com/");

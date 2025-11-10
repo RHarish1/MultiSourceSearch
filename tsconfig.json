@@ -43,7 +43,8 @@
     "noPropertyAccessFromIndexSignature": true, // Forces correct key typing on objects,
     "forceConsistentCasingInFileNames": true, // Avoids issues on case-insensitive file systems
     "allowUnreachableCode": false, // Avoids dead code
-    "noImplicitThis": true // TS doesn’t enforce this by default; adding it avoids dead branches (nice-to-have).
+    "noImplicitThis": true, // TS doesn’t enforce this by default; adding it avoids dead branches (nice-to-have).
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*"

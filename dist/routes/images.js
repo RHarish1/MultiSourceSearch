@@ -14,7 +14,7 @@ const { Image, Tag, ImageTag, Drive } = db;
 router.get("/", requireLogin, refreshDrives, async (req, res, _next) => {
     try {
         const userId = req.session.userId ?? " ";
-        const search = req.query.search?.trim();
+        const search = req.query["search"]?.trim();
         const where = { userId };
         if (search) {
             where.fileName = { [Op.iLike]: `%${search}%` };
@@ -40,11 +40,11 @@ router.get("/", requireLogin, refreshDrives, async (req, res, _next) => {
 // ======================================================
 //                  SEARCH IMAGES
 // ======================================================
-router.get("/search", requireLogin, async (req, res) => {
+router.get("/search", requireLogin, async (_req, res) => {
     try {
-        const userId = req.session.userId;
-        const q = (req.query.q || "").trim();
-        const and = req.query.and === "true";
+        const userId = _req.session.userId;
+        const q = (_req.query["q"] || "").trim();
+        const and = _req.query["and"] === "true";
         if (!userId)
             return res.status(401).json({ error: "Not logged in" });
         if (!q)
@@ -87,6 +87,7 @@ router.get("/search", requireLogin, async (req, res) => {
         console.error("Search error:", err);
         res.status(500).json({ error: "Search failed" });
     }
+    return;
 });
 // ======================================================
 //                  UPLOAD IMAGE
@@ -130,6 +131,7 @@ router.post("/upload", requireLogin, upload.single("file"), async (req, res) => 
         console.error("Error uploading image:", err);
         res.status(500).json({ error: "Upload failed" });
     }
+    return;
 });
 // ======================================================
 //                  EDIT IMAGE
@@ -138,7 +140,7 @@ router.put("/:id", requireLogin, async (req, res) => {
     try {
         const userId = req.session.userId;
         const { fileName, tags } = req.body;
-        const image = await Image.findOne({ where: { id: req.params.id, userId } });
+        const image = await Image.findOne({ where: { id: req.params["id"], userId } });
         if (!image)
             return res.status(404).json({ error: "Not found" });
         if (fileName)
@@ -158,14 +160,15 @@ router.put("/:id", requireLogin, async (req, res) => {
         console.error("Error editing image:", err);
         res.status(500).json({ error: "Edit failed" });
     }
+    return;
 });
 // ======================================================
 //                  DELETE IMAGE
 // ======================================================
-router.delete("/:id", requireLogin, async (req, res) => {
+router.delete("/:id", requireLogin, async (_req, res) => {
     try {
-        const userId = req.session.userId;
-        const image = await Image.findOne({ where: { id: req.params.id, userId } });
+        const userId = _req.session.userId;
+        const image = await Image.findOne({ where: { id: _req.params["id"], userId } });
         if (!image)
             return res.status(404).json({ error: "Not found" });
         const drive = await Drive.findByPk(image.driveId);
@@ -190,6 +193,7 @@ router.delete("/:id", requireLogin, async (req, res) => {
         console.error("Error deleting image:", err);
         res.status(500).json({ error: "Delete failed" });
     }
+    return;
 });
 export default router;
 //# sourceMappingURL=images.js.map
