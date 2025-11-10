@@ -60,6 +60,7 @@ router.post("/register", async (req: AuthenticatedRequest, res: Response) => {
         console.error(err);
         res.status(500).json({ error: "Registration failed" });
     }
+    return;
 });
 
 // ======================================================
@@ -87,6 +88,7 @@ router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
         console.error(err);
         res.status(500).json({ error: "Login failed" });
     }
+    return;
 });
 
 // ======================================================
@@ -96,8 +98,9 @@ router.post("/logout", requireLogin, (req: AuthenticatedRequest, res: Response) 
     req.session.destroy((err) => {
         if (err) return res.status(500).json({ error: "Logout failed" });
         res.clearCookie("connect.sid");
-        res.json({ message: "Logged out" });
+        return res.json({ message: "Logged out" });
     });
+    return;
 });
 
 // ======================================================
@@ -121,10 +124,10 @@ router.get("/me", requireLogin, async (req: AuthenticatedRequest, res: Response)
             onedrive: drives.some((d) => d.provider === "onedrive"),
         };
 
-        res.json({ user, linked });
+        return res.json({ user, linked });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Failed to fetch user" });
+        return res.status(500).json({ error: "Failed to fetch user" });
     }
 });
 
@@ -161,12 +164,12 @@ router.get(
 //                GOOGLE DRIVE OAUTH
 // ======================================================
 const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    process.env["GOOGLE_CLIENT_ID"],
+    process.env["GOOGLE_CLIENT_SECRET"],
+    process.env["GOOGLE_REDIRECT_URI"]
 );
 
-router.get("/google", requireLogin, refreshDrives, (req, res) => {
+router.get("/google", requireLogin, refreshDrives, (_req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: "offline",
         prompt: "consent",
@@ -183,9 +186,9 @@ router.get(
     "/google/callback",
     requireLogin,
     refreshDrives,
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (_req: AuthenticatedRequest, res: Response) => {
         try {
-            const code = req.query.code as string;
+            const code = _req.query["code"] as string;
             if (!code) return res.status(400).send("Missing code");
 
             const { tokens } = await oauth2Client.getToken(code);
@@ -195,7 +198,7 @@ router.get(
             const { data } = await oauth2.userinfo.get();
 
             await Drive.upsert({
-                userId: req.session.userId!,
+                userId: _req.session.userId!,
                 provider: "google",
                 email: data.email!,
                 accessToken: encrypt(tokens.access_token ?? "") ?? "",
@@ -203,20 +206,21 @@ router.get(
                 expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
             });
 
-            res.redirect("/manageDrives");
+            return res.redirect("/manageDrives");
         } catch (err) {
             console.error(err);
-            res.status(500).send("Google OAuth failed");
+            return res.status(500).send("Google OAuth failed");
         }
+
     }
 );
 
 // ======================================================
 //                ONEDRIVE OAUTH
 // ======================================================
-router.get("/onedrive", requireLogin, refreshDrives, (req, res) => {
-    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.ONEDRIVE_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(
-        process.env.ONEDRIVE_REDIRECT_URI!
+router.get("/onedrive", requireLogin, refreshDrives, (_req, res) => {
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env["ONEDRIVE_CLIENT_ID"]}&response_type=code&redirect_uri=${encodeURIComponent(
+        process.env["ONEDRIVE_REDIRECT_URI"]!
     )}&scope=Files.ReadWrite.All offline_access User.Read`;
     res.redirect(authUrl);
 });
@@ -227,7 +231,7 @@ router.get(
     refreshDrives,
     async (req: AuthenticatedRequest, res: Response) => {
         try {
-            const code = req.query.code as string;
+            const code = req.query["code"] as string;
             if (!code) return res.status(400).send("Missing code");
 
             const tokenRes = await fetch(
@@ -236,10 +240,10 @@ router.get(
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: new URLSearchParams({
-                        client_id: process.env.ONEDRIVE_CLIENT_ID!,
-                        client_secret: process.env.ONEDRIVE_CLIENT_SECRET!,
+                        client_id: process.env["ONEDRIVE_CLIENT_ID"]!,
+                        client_secret: process.env["ONEDRIVE_CLIENT_SECRET"]!,
                         code,
-                        redirect_uri: process.env.ONEDRIVE_REDIRECT_URI!,
+                        redirect_uri: process.env["ONEDRIVE_REDIRECT_URI"]!,
                         grant_type: "authorization_code",
                     }),
                 }
@@ -267,10 +271,10 @@ router.get(
                     : null,
             });
 
-            res.redirect("/manageDrives");
+            return res.redirect("/manageDrives");
         } catch (err) {
             console.error("OneDrive OAuth failed:", err);
-            res.status(500).send("OneDrive OAuth failed");
+            return res.status(500).send("OneDrive OAuth failed");
         }
     }
 );

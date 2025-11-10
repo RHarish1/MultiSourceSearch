@@ -14,8 +14,8 @@ async function refreshGoogleToken(drive: Drive): Promise<void> {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-            client_id: process.env.GOOGLE_CLIENT_ID!,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            client_id: process.env["GOOGLE_CLIENT_ID"]!,
+            client_secret: process.env["GOOGLE_CLIENT_SECRET"]!,
             refresh_token: refreshToken,
             grant_type: "refresh_token",
         }),
@@ -48,11 +48,11 @@ async function refreshOneDriveToken(drive: Drive): Promise<void> {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
-                client_id: process.env.ONEDRIVE_CLIENT_ID!,
-                client_secret: process.env.ONEDRIVE_CLIENT_SECRET!,
+                client_id: process.env["ONEDRIVE_CLIENT_ID"]!,
+                client_secret: process.env["ONEDRIVE_CLIENT_SECRET"]!,
                 refresh_token: refreshToken,
                 grant_type: "refresh_token",
-                redirect_uri: process.env.ONEDRIVE_REDIRECT_URI!,
+                redirect_uri: process.env["ONEDRIVE_REDIRECT_URI"]!,
             }),
         }
     );
@@ -79,7 +79,7 @@ async function refreshOneDriveToken(drive: Drive): Promise<void> {
 // ----------------------------------------
 export default async function refreshDrives(
     req: Request,
-    res: Response,
+    _res: Response,
     next: NextFunction
 ): Promise<void> {
     try {
