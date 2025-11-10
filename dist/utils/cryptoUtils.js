@@ -1,11 +1,11 @@
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 dotenv.config();
-if (!process.env.ENCRYPTION_KEY) {
+if (!process.env['ENCRYPTION_KEY']) {
     throw new Error("ENCRYPTION_KEY not set in environment variables");
 }
 const key = crypto.createHash('sha256')
-    .update(process.env.ENCRYPTION_KEY)
+    .update(process.env['ENCRYPTION_KEY'])
     .digest();
 export function encrypt(text) {
     if (!text)

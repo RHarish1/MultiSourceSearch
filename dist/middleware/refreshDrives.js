@@ -12,8 +12,8 @@ async function refreshGoogleToken(drive) {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            client_id: process.env["GOOGLE_CLIENT_ID"],
+            client_secret: process.env["GOOGLE_CLIENT_SECRET"],
             refresh_token: refreshToken,
             grant_type: "refresh_token",
         }),
@@ -39,11 +39,11 @@ async function refreshOneDriveToken(drive) {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-            client_id: process.env.ONEDRIVE_CLIENT_ID,
-            client_secret: process.env.ONEDRIVE_CLIENT_SECRET,
+            client_id: process.env["ONEDRIVE_CLIENT_ID"],
+            client_secret: process.env["ONEDRIVE_CLIENT_SECRET"],
             refresh_token: refreshToken,
             grant_type: "refresh_token",
-            redirect_uri: process.env.ONEDRIVE_REDIRECT_URI,
+            redirect_uri: process.env["ONEDRIVE_REDIRECT_URI"],
         }),
     });
     if (!res.ok)
@@ -61,7 +61,7 @@ async function refreshOneDriveToken(drive) {
 // ----------------------------------------
 // Middleware: Refresh drives if expired
 // ----------------------------------------
-export default async function refreshDrives(req, res, next) {
+export default async function refreshDrives(req, _res, next) {
     try {
         const userId = req.session?.userId;
         if (!userId)
