@@ -22,7 +22,7 @@ router.get(
     async (req: AuthenticatedRequest, res: Response, _next: NextFunction) => {
         try {
             const userId = req.session.userId ?? " ";
-            const search = (req.query.search as string | undefined)?.trim();
+            const search = (req.query["search"] as string | undefined)?.trim();
 
             const where: any = { userId };
             if (search) {
@@ -56,12 +56,11 @@ router.get(
 router.get(
     "/search",
     requireLogin,
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (_req: AuthenticatedRequest, res: Response) => {
         try {
-            const userId = req.session.userId;
-            const q = ((req.query.q as string) || "").trim();
-            const and = req.query.and === "true";
-
+            const userId = _req.session.userId;
+            const q = ((_req.query["q"] as string) || "").trim();
+            const and = _req.query["and"] === "true";
             if (!userId) return res.status(401).json({ error: "Not logged in" });
             if (!q) return res.status(400).json({ error: "Missing query" });
 
@@ -108,6 +107,7 @@ router.get(
             console.error("Search error:", err);
             res.status(500).json({ error: "Search failed" });
         }
+        return;
     }
 );
 
@@ -165,6 +165,7 @@ router.post(
             console.error("Error uploading image:", err);
             res.status(500).json({ error: "Upload failed" });
         }
+        return;
     }
 );
 
@@ -179,7 +180,7 @@ router.put(
             const userId = req.session.userId;
             const { fileName, tags } = req.body;
 
-            const image = await Image.findOne({ where: { id: req.params.id, userId } });
+            const image = await Image.findOne({ where: { id: req.params["id"], userId } });
             if (!image) return res.status(404).json({ error: "Not found" });
 
             if (fileName) image.fileName = fileName;
@@ -201,6 +202,7 @@ router.put(
             console.error("Error editing image:", err);
             res.status(500).json({ error: "Edit failed" });
         }
+        return;
     }
 );
 
@@ -210,10 +212,10 @@ router.put(
 router.delete(
     "/:id",
     requireLogin,
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (_req: AuthenticatedRequest, res: Response) => {
         try {
-            const userId = req.session.userId;
-            const image = await Image.findOne({ where: { id: req.params.id, userId } });
+            const userId = _req.session.userId;
+            const image = await Image.findOne({ where: { id: _req.params["id"], userId } });
             if (!image) return res.status(404).json({ error: "Not found" });
 
             const drive = await Drive.findByPk(image.driveId);
@@ -237,6 +239,7 @@ router.delete(
             console.error("Error deleting image:", err);
             res.status(500).json({ error: "Delete failed" });
         }
+        return;
     }
 );
 

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Serve dashboard page
-router.get("/", (req: Request, res: Response) => {
+router.get("/", (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, "../../public/imageSearch.html"));
 });
 

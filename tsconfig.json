@@ -50,15 +50,22 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     // ===============================
     // 🧩 Miscellaneous
     // ===============================
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": false,
-    "verbatimModuleSyntax": false
+    "isolatedModules": true, // Each file is a separate module (needed for ESM)
+    "verbatimModuleSyntax": false, // Ensures TS output matches ESM spec
+    "noImplicitReturns": true, // Forces explicit return values in every code path
+    "noFallthroughCasesInSwitch": true, // Prevents unintended case fallthrough
+    "noUnusedLocals": true, // Helps keep code clean
+    "noUnusedParameters": true, // Avoids function arg waste
+    "noImplicitOverride": true, // Must mark overrides explicitly
+    "noPropertyAccessFromIndexSignature": true, // Forces correct key typing on objects,
+    "forceConsistentCasingInFileNames": true, // Avoids issues on case-insensitive file systems
+    "allowUnreachableCode": false, // Avoids dead code
+    "noImplicitThis": true // TS doesn’t enforce this by default; adding it avoids dead branches (nice-to-have).
   },
   "include": [
     "src/**/*"
