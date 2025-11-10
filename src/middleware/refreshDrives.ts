@@ -1,12 +1,13 @@
 import fetch from "node-fetch";
-import { Drive } from "../models/postgres/Drive.js";
+import type { drives, Prisma } from "@prisma/client";
 import { decrypt, encrypt } from "../utils/cryptoUtils.js";
 import type { Request, Response, NextFunction } from "express";
+import { prisma } from "../prisma.js";
 
 // ----------------------------------------
 // Helper: Refresh Google Drive token
 // ----------------------------------------
-async function refreshGoogleToken(drive: Drive): Promise<void> {
+async function refreshGoogleToken(drive: drives): Promise<void> {
     const refreshToken = decrypt(drive.refreshToken);
     if (!refreshToken) throw new Error("No Google refresh token");
 
@@ -27,18 +28,24 @@ async function refreshGoogleToken(drive: Drive): Promise<void> {
         expires_in?: number;
     };
 
-    await drive.update({
-        accessToken: (tokens.access_token ? encrypt(tokens.access_token) : drive.accessToken) as string,
-        expiry: tokens.expires_in
-            ? new Date(Date.now() + tokens.expires_in * 1000)
-            : drive.expiry,
+    await prisma.drives.update({
+        where: { id: drive.id },
+        data: {
+            accessToken: (tokens.access_token
+                ? encrypt(tokens.access_token)
+                : drive.accessToken ?? "") as string,
+            expiry: tokens.expires_in
+                ? new Date(Date.now() + tokens.expires_in * 1000)
+                : drive.expiry,
+        },
     });
+
 }
 
 // ----------------------------------------
 // Helper: Refresh OneDrive token
 // ----------------------------------------
-async function refreshOneDriveToken(drive: Drive): Promise<void> {
+async function refreshOneDriveToken(drive: drives): Promise<void> {
     const refreshToken = decrypt(drive.refreshToken);
     if (!refreshToken) throw new Error("No OneDrive refresh token");
 
@@ -64,14 +71,18 @@ async function refreshOneDriveToken(drive: Drive): Promise<void> {
         expires_in?: number;
     };
 
-    await drive.update({
-        refreshToken: (tokens.refresh_token
-            ? encrypt(tokens.refresh_token)
-            : drive.refreshToken) as string,
-        expiry: tokens.expires_in
-            ? new Date(Date.now() + tokens.expires_in * 1000)
-            : drive.expiry,
+    await prisma.drives.update({
+        where: { id: drive.id },
+        data: {
+            ...(tokens.refresh_token && {
+                refreshToken: encrypt(tokens.refresh_token),
+            }),
+            ...(tokens.expires_in && {
+                expiry: new Date(Date.now() + tokens.expires_in * 1000),
+            }),
+        } as Prisma.drivesUpdateInput,
     });
+
 }
 
 // ----------------------------------------
@@ -86,7 +97,7 @@ export default async function refreshDrives(
         const userId = (req.session as any)?.userId as string | undefined;
         if (!userId) return next();
 
-        const drives = await Drive.findAll({ where: { userId } });
+        const drives = await prisma.drives.findMany({ where: { userId } });
 
         for (const drive of drives) {
             const now = new Date();
@@ -108,7 +119,9 @@ export default async function refreshDrives(
                     `⚠️ Failed to refresh ${drive.provider} token for ${drive.email || userId
                     }: ${e.message}`
                 );
-                await drive.destroy();
+                await prisma.drives.delete({
+                    where: { id: drive.id },
+                });
                 console.log(`🗑️ Deleted expired ${drive.provider} for ${drive.email || userId}`);
             }
         }

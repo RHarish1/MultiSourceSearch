@@ -8,7 +8,6 @@ import path from "path";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
-import { sequelize } from "./models/postgres/sequelize.js";
 import requireLogin from "./middleware/requireLogin.js";
 import preventAuthForLoggedIn from "./middleware/preventAuthForLoggedIn.js";
 // Import routes
@@ -18,7 +17,6 @@ import driveRoutes from "./routes/manageDrives.js";
 import imageRoutes from "./routes/imageSearch.js";
 import imageHandlerRoutes from "./routes/images.js";
 // ---------- Init ----------
-await sequelize.sync();
 const app = express();
 const PORT = process.env["PORT"] || 3000;
 const __dirname = path.resolve();

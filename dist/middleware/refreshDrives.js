@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
-import { Drive } from "../models/postgres/Drive.js";
 import { decrypt, encrypt } from "../utils/cryptoUtils.js";
+import { prisma } from "../prisma.js";
 // ----------------------------------------
 // Helper: Refresh Google Drive token
 // ----------------------------------------
@@ -21,11 +21,16 @@ async function refreshGoogleToken(drive) {
     if (!res.ok)
         throw new Error(`Google token refresh failed: ${res.status}`);
     const tokens = (await res.json());
-    await drive.update({
-        accessToken: (tokens.access_token ? encrypt(tokens.access_token) : drive.accessToken),
-        expiry: tokens.expires_in
-            ? new Date(Date.now() + tokens.expires_in * 1000)
-            : drive.expiry,
+    await prisma.drives.update({
+        where: { id: drive.id },
+        data: {
+            accessToken: (tokens.access_token
+                ? encrypt(tokens.access_token)
+                : drive.accessToken ?? ""),
+            expiry: tokens.expires_in
+                ? new Date(Date.now() + tokens.expires_in * 1000)
+                : drive.expiry,
+        },
     });
 }
 // ----------------------------------------
@@ -49,13 +54,16 @@ async function refreshOneDriveToken(drive) {
     if (!res.ok)
         throw new Error(`OneDrive token refresh failed: ${res.status}`);
     const tokens = (await res.json());
-    await drive.update({
-        refreshToken: (tokens.refresh_token
-            ? encrypt(tokens.refresh_token)
-            : drive.refreshToken),
-        expiry: tokens.expires_in
-            ? new Date(Date.now() + tokens.expires_in * 1000)
-            : drive.expiry,
+    await prisma.drives.update({
+        where: { id: drive.id },
+        data: {
+            ...(tokens.refresh_token && {
+                refreshToken: encrypt(tokens.refresh_token),
+            }),
+            ...(tokens.expires_in && {
+                expiry: new Date(Date.now() + tokens.expires_in * 1000),
+            }),
+        },
     });
 }
 // ----------------------------------------
@@ -66,7 +74,7 @@ export default async function refreshDrives(req, _res, next) {
         const userId = req.session?.userId;
         if (!userId)
             return next();
-        const drives = await Drive.findAll({ where: { userId } });
+        const drives = await prisma.drives.findMany({ where: { userId } });
         for (const drive of drives) {
             const now = new Date();
             const isExpired = drive.expiry && now > drive.expiry;
@@ -85,7 +93,9 @@ export default async function refreshDrives(req, _res, next) {
             catch (err) {
                 const e = err;
                 console.warn(`⚠️ Failed to refresh ${drive.provider} token for ${drive.email || userId}: ${e.message}`);
-                await drive.destroy();
+                await prisma.drives.delete({
+                    where: { id: drive.id },
+                });
                 console.log(`🗑️ Deleted expired ${drive.provider} for ${drive.email || userId}`);
             }
         }
