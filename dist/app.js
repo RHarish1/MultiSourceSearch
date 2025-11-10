@@ -80,7 +80,7 @@ app.use("/manageDrives", requireLogin, driveRoutes);
 app.use("/imageSearch", requireLogin, imageRoutes);
 app.use("/images", requireLogin, imageHandlerRoutes);
 // Static files, Remove comment to serve static files if needed
-// app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public")));
 // ---------- Start ----------
 app.listen(PORT, () => {
     console.log("🚀 Server running on https://multisourcesearch.onrender.com/");

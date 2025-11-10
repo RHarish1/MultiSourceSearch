@@ -2,15 +2,17 @@ import { google } from "googleapis";
 import fetch from "node-fetch";
 import { Readable } from "stream";
 import { decrypt } from "./cryptoUtils.js";
-import { Drive } from "../models/postgres/Drive.js";
 import refreshDrives from "../middleware/refreshDrives.js";
+import { prisma } from "../prisma.js";
 // -----------------------------
 // Helper: Auto-refresh Drive tokens
 // -----------------------------
 async function ensureFreshDrive(userId, provider) {
-    // Call refresh middleware manually with fake req/res
+    // Manually call refresh middleware (fake req/res)
     await refreshDrives({ session: { userId } }, { locals: {} }, () => { });
-    return await Drive.findOne({ where: { userId, provider } });
+    return await prisma.drives.findFirst({
+        where: { userId, provider },
+    });
 }
 // -----------------------------
 // UPLOAD FILE TO CLOUD DRIVE
@@ -20,7 +22,7 @@ export async function uploadToDrive(userId, provider, file) {
     if (!drive)
         throw new Error(`${provider} drive not linked`);
     const accessToken = decrypt(drive.accessToken);
-    // ---------------- Google Drive Upload ----------------
+    // ---------- Google Drive ----------
     if (provider === "google") {
         const oauth2Client = new google.auth.OAuth2();
         oauth2Client.setCredentials({ access_token: accessToken });
@@ -37,12 +39,11 @@ export async function uploadToDrive(userId, provider, file) {
             id: res.data.id ?? "",
             url: res.data.webViewLink ?? "",
         };
-        if (res.data.thumbnailLink) {
+        if (res.data.thumbnailLink)
             result.thumbnail = res.data.thumbnailLink;
-        }
         return result;
     }
-    // ---------------- OneDrive Upload ----------------
+    // ---------- OneDrive ----------
     if (provider === "onedrive") {
         const uploadRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/Uploads/${encodeURIComponent(file.originalname)}:/content`, {
             method: "PUT",
@@ -52,9 +53,8 @@ export async function uploadToDrive(userId, provider, file) {
             },
             body: file.buffer,
         });
-        if (!uploadRes.ok) {
+        if (!uploadRes.ok)
             throw new Error(`OneDrive upload failed: ${uploadRes.statusText}`);
-        }
         const data = (await uploadRes.json());
         return { id: data.id, url: data.webUrl };
     }
@@ -68,7 +68,7 @@ export async function deleteFromDrive(userId, provider, fileId) {
     if (!drive)
         throw new Error(`${provider} drive not linked`);
     const accessToken = decrypt(drive.accessToken);
-    // ---------------- Google Drive Delete ----------------
+    // ---------- Google Drive ----------
     if (provider === "google") {
         const oauth2Client = new google.auth.OAuth2();
         oauth2Client.setCredentials({ access_token: accessToken });
@@ -76,15 +76,14 @@ export async function deleteFromDrive(userId, provider, fileId) {
         await driveClient.files.delete({ fileId });
         return true;
     }
-    // ---------------- OneDrive Delete ----------------
+    // ---------- OneDrive ----------
     if (provider === "onedrive") {
         const delRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${accessToken}` },
         });
-        if (!delRes.ok) {
+        if (!delRes.ok)
             throw new Error(`OneDrive delete failed: ${delRes.statusText}`);
-        }
         return true;
     }
     throw new Error("Unknown provider");
