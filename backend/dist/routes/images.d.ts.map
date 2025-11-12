@@ -1,0 +1,10 @@
+{
+    "version": 3,
+    "file": "images.d.ts",
+    "sourceRoot": "",
+    "sources": [
+        "../../src/routes/images.ts"
+    ],
+    "names": [],
+    "mappings": "AAQA,QAAA,MAAM,MAAM,4CAAmB,CAAC;AA8QhC,eAAe,MAAM,CAAC"
+}
