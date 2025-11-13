@@ -1,1 +1,0 @@
-{"version":3,"file":"requireLogin.js","sourceRoot":"","sources":["../../src/middleware/requireLogin.ts"],"names":[],"mappings":"AAGA,MAAM,CAAC,OAAO,UAAU,YAAY,CAAC,GAAyB,EAAE,GAAa,EAAE,IAAkB;IAC7F,IAAI,CAAC,GAAG,CAAC,OAAO,IAAI,CAAC,GAAG,CAAC,OAAO,CAAC,MAAM,EAAE,CAAC;QACtC,OAAO,GAAG,CAAC,QAAQ,CAAC,QAAQ,CAAC,CAAC;IAClC,CAAC;IACD,IAAI,EAAE,CAAC;AACX,CAAC"}
