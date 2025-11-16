@@ -13,6 +13,8 @@ import requireLogin from "./middleware/requireLogin.js";
 // Routes
 import authRoutes from "./routes/auth.js";
 import imageHandlerRoutes from "./routes/images.js";
+import googleAuthRoutes from "./routes/googleAuth.js";
+import onedriveAuthRoutes from "./routes/onedriveAuth.js";
 
 // ============================================================
 // 🚀 App Initialization
@@ -85,10 +87,10 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: isProd, // HTTPS-only in production
+            secure: isProd,
             httpOnly: true,
             sameSite: isProd ? "none" : "lax",
-            maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+            maxAge: 1000 * 60 * 60 * 24 * 7,
         },
     })
 );
@@ -98,6 +100,8 @@ app.use(
 // ============================================================
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/google", googleAuthRoutes);
+app.use("/api/auth/onedrive", onedriveAuthRoutes);
 app.use("/api/images", requireLogin, imageHandlerRoutes);
 
 // Example health check route

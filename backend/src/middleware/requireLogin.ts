@@ -9,9 +9,9 @@ export default function requireLogin(
 ) {
     if (!req.session || !req.session.userId) {
         res.status(401).json({ error: "Unauthorized: login required" });
+        return;
     }
-    else {
-        res.status(200).json({ message: "User is logged in" });
-    }
+
+    // If logged in → just continue
     return next();
 }
