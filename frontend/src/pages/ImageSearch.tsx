@@ -196,7 +196,7 @@ export default function ImageSearch() {
                     ) : (
                         images.map((img) => (
                             <div className="col-md-3" key={img.id}>
-                                <div className="card-body text-center border rounded p-2 bg-white shadow-sm">
+                                <div className="card shadow-sm border rounded bg-white">
                                     <p className="fw-semibold">{img.fileName}</p>
                                     <small className="text-muted">
                                         {img.tags.join(", ")}
