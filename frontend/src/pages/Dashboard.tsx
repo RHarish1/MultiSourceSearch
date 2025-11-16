@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { apiFetch } from "../lib/apiFetch.ts";
 interface User {
     username: string;
 }
@@ -13,7 +13,7 @@ export default function Dashboard() {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const res = await fetch("/api/auth/me", {
+                const res = await apiFetch("/auth/me", {
                     credentials: "include",
                 });
 
@@ -31,7 +31,7 @@ export default function Dashboard() {
 
     // Logout
     const handleLogout = async () => {
-        await fetch("/auth/logout", { method: "POST" });
+        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
         navigate("/");
     };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import { Navigate } from "react-router-dom";
-
+import { apiFetch } from "../lib/apiFetch.ts";
 interface Props {
     children: JSX.Element;
 }
@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }: Props) {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("/api/auth/me", {
+                const res = await apiFetch("/auth/me", {
                     credentials: "include",
                 });
 

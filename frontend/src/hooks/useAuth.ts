@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-
+import { apiFetch } from "../lib/apiFetch.ts";
 interface User {
     username: string;
     email?: string;
@@ -20,7 +20,7 @@ export function useAuth() {
         setError(null);
 
         try {
-            const res = await fetch("/api/auth/me", {
+            const res = await apiFetch("/auth/me", {
                 credentials: "include",
             });
 
@@ -45,7 +45,7 @@ export function useAuth() {
 
     // --- Login ---
     const login = async (login: string, password: string) => {
-        const res = await fetch("/api/auth/login", {
+        const res = await apiFetch("/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -62,7 +62,7 @@ export function useAuth() {
 
     // --- Register ---
     const register = async (username: string, email: string, password: string) => {
-        const res = await fetch("/api/auth/register", {
+        const res = await apiFetch("/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -79,7 +79,7 @@ export function useAuth() {
 
     // --- Logout ---
     const logout = async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
+        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
         setUser(null);
     };
 

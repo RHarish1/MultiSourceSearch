@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UploadModal from "../components/UploadModal.tsx";
-
+import { apiFetch } from "../lib/apiFetch.ts";
 interface Drive {
     provider: string;
     email?: string;
@@ -26,14 +26,14 @@ export default function ImageSearch() {
 
     // Fetch linked drives
     const loadDrives = async () => {
-        const res = await fetch("/api/auth/drives");
+        const res = await apiFetch("/auth/drives");
         const data = await res.json();
         setDrives(data.drives || []);
     };
 
     // Fetch user images
     const loadImages = async () => {
-        const res = await fetch("/api/images");
+        const res = await apiFetch("/images");
         if (!res.ok) return navigate("/dashboard");
         setImages(await res.json());
     };
@@ -41,7 +41,7 @@ export default function ImageSearch() {
     // Delete image
     const deleteImage = async (id: string) => {
         if (!confirm("Delete this image?")) return;
-        await fetch(`/api/images/${id}`, { method: "DELETE" });
+        await apiFetch(`/images/${id}`, { method: "DELETE" });
         loadImages();
     };
 
@@ -50,7 +50,7 @@ export default function ImageSearch() {
         const newName = prompt("Enter new name:");
         const newTags = prompt("Enter new tags (comma-separated):");
 
-        await fetch(`/api/images/${id}`, {
+        await apiFetch(`/images/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -69,15 +69,15 @@ export default function ImageSearch() {
             return;
         }
 
-        const res = await fetch(
-            `/api/images/search?q=${encodeURIComponent(search)}&and=${andSearch}`
+        const res = await apiFetch(
+            `/images/search?q=${encodeURIComponent(search)}&and=${andSearch}`
         );
         const data = await res.json();
         setImages(data.images || []);
     };
 
     const handleLogout = async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
+        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
         navigate("/");
     };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { apiFetch } from "../lib/apiFetch.ts";
 interface User {
     username: string;
     email: string;
@@ -23,7 +23,7 @@ export default function ManageDrives() {
 
     // Fetch linked drive status
     const loadStatus = async () => {
-        const res = await fetch("/api/auth/me", {
+        const res = await apiFetch("/auth/me", {
             credentials: "include",
         });
 
@@ -34,7 +34,7 @@ export default function ManageDrives() {
     };
 
     const logout = async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
+        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
         navigate("/");
     };
 

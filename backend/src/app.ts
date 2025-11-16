@@ -110,5 +110,5 @@ app.get("/api/health", (_req, res) => {
 // 🏁 Server Startup
 // ============================================================
 app.listen(PORT, () => {
-    console.log(`🚀 Backend running on http://localhost:${PORT}`);
+    console.log(`🚀 Backend running on https://multisourcesearch.onrender.com`);
 });
