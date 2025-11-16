@@ -12,8 +12,8 @@ interface Props {
     onUploaded: () => void;
 }
 
-export default function UploadModal({ show, onClose, drives, onUploaded }: Props) {
-    const [provider, setProvider] = useState("");
+export default function UploadModal({ show, onClose, onUploaded }: Props) {
+    const [provider, _] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState("");
     const [tags, setTags] = useState("");
@@ -69,8 +69,10 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
     if (!show) return null;
 
     return (
-        <div className="modal-backdrop fade show">
-            <div className="modal d-block" tabIndex={-1}>
+        <>
+            <div className="modal-backdrop fade show"></div>
+
+            <div className="modal fade show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content">
                         <form onSubmit={submit}>
@@ -84,45 +86,7 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
                             </div>
 
                             <div className="modal-body">
-                                <label className="form-label">Choose Drive</label>
-                                <select
-                                    className="form-select mb-3"
-                                    value={provider}
-                                    required
-                                    onChange={(e) => setProvider(e.target.value)}
-                                >
-                                    <option value="">Select drive</option>
-                                    {drives.map((d) => (
-                                        <option key={d.provider} value={d.provider}>
-                                            {d.provider.toUpperCase()} ({d.email})
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <label className="form-label">Image</label>
-                                <input
-                                    type="file"
-                                    className="form-control mb-3"
-                                    accept="image/*"
-                                    required
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                />
-
-                                <label className="form-label">Image Name</label>
-                                <input
-                                    className="form-control mb-3"
-                                    value={fileName}
-                                    required
-                                    onChange={(e) => setFileName(e.target.value)}
-                                />
-
-                                <label className="form-label">Tags (comma-separated)</label>
-                                <input
-                                    className="form-control"
-                                    value={tags}
-                                    required
-                                    onChange={(e) => setTags(e.target.value)}
-                                />
+                                {/* your form fields */}
                             </div>
 
                             <div className="modal-footer">
@@ -141,6 +105,7 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
+
 }
