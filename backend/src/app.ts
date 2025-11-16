@@ -62,7 +62,7 @@ app.set("trust proxy", 1);
 app.use(
     cors({
         origin: [
-            "https://multisourcesearch.onrender.com",
+            "https://multi-source-search.vercel.app",
         ],
         credentials: true,
     })
