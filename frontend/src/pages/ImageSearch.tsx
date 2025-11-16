@@ -110,7 +110,7 @@ export default function ImageSearch() {
     }, []);
 
     return (
-        <div className="bg-light min-vh-100">
+        <div className="bg-white min-vh-100">
             {/* NAVBAR */}
             <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-3">
                 <a className="navbar-brand" href="/dashboard">
