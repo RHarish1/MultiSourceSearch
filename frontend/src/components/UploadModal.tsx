@@ -21,15 +21,15 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!file) {
-            alert("Select a file");
-            return;
-        }
+        if (!file) return alert("Select a file");
 
-        const cleanTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+        const cleanTags = tags
+            .split(",")
+            .map(t => t.trim())
+            .filter(Boolean);
+
         if (cleanTags.length === 0) {
-            alert("Enter at least one tag");
-            return;
+            return alert("Enter at least one tag");
         }
 
         const form = new FormData();
@@ -38,14 +38,23 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
         form.append("fileName", fileName);
         form.append("tags", cleanTags.join(","));
 
-        const res = await fetch("/images/upload", {
+        // IMPORTANT: use your backend URL
+        const API_URL = import.meta.env.VITE_API_URL;
+
+        const res = await fetch(`${API_URL}/images/upload`, {
             method: "POST",
+            credentials: "include",     // <-- required for cookies
             body: form,
         });
 
-        const data = await res.json();
+        let data: any = null;
+        try {
+            data = await res.json();
+        } catch {
+            data = null;
+        }
 
-        if (data.success) {
+        if (res.ok && data?.success) {
             alert("Uploaded successfully");
             onUploaded();
             onClose();
@@ -53,7 +62,7 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
             setFileName("");
             setTags("");
         } else {
-            alert("Upload failed: " + data.error);
+            alert("Upload failed: " + (data?.error || "Unknown error"));
         }
     };
 
@@ -120,7 +129,11 @@ export default function UploadModal({ show, onClose, drives, onUploaded }: Props
                                 <button className="btn btn-success" type="submit">
                                     Upload
                                 </button>
-                                <button className="btn btn-secondary" onClick={onClose} type="button">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={onClose}
+                                    type="button"
+                                >
                                     Cancel
                                 </button>
                             </div>

@@ -1,13 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../lib/apiFetch.ts";
+
 interface User {
     username: string;
     email?: string;
 }
 
-interface AuthResponse {
-    user: User;
-}
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -20,19 +18,18 @@ export function useAuth() {
         setError(null);
 
         try {
-            const res = await apiFetch("/auth/me", {
+            const data = await apiFetch("/auth/me", {
                 credentials: "include",
             });
 
-            if (res.ok) {
-                const data: AuthResponse = await res.json();
-                setUser(data.user);
-            } else {
+            if (!data || !data.user) {
                 setUser(null);
+            } else {
+                setUser(data.user);
             }
         } catch (err: any) {
             setUser(null);
-            setError(err.message);
+            setError(err.message || "Failed to load user");
         }
 
         setLoading(false);
@@ -45,42 +42,44 @@ export function useAuth() {
 
     // --- Login ---
     const login = async (login: string, password: string) => {
-        const res = await apiFetch("/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ login, password }),
-        });
+        try {
+            await apiFetch("/auth/login", {
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify({ login, password }),
+            });
 
-        if (!res.ok) {
-            const err = await res.json();
+            await fetchUser();
+        } catch (err: any) {
             throw new Error(err.message || "Login failed");
         }
-
-        await fetchUser();
     };
 
     // --- Register ---
     const register = async (username: string, email: string, password: string) => {
-        const res = await apiFetch("/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ username, email, password }),
-        });
+        try {
+            await apiFetch("/auth/register", {
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify({ username, email, password }),
+            });
 
-        if (!res.ok) {
-            const err = await res.json();
+            await fetchUser();
+        } catch (err: any) {
             throw new Error(err.message || "Registration failed");
         }
-
-        await fetchUser();
     };
 
     // --- Logout ---
     const logout = async () => {
-        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
-        setUser(null);
+        try {
+            await apiFetch("/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+        } finally {
+            setUser(null);
+        }
     };
 
     return {

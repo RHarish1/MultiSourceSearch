@@ -14,21 +14,30 @@ export default function Navbar() {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await apiFetch("/auth/me", {
+                const data = await apiFetch("/auth/me", {
                     credentials: "include",
                 });
 
-                if (!res.ok) return;
-                const data = await res.json();
-                setUser(data.user);
-            } catch { }
+                if (data && data.user) {
+                    setUser(data.user);
+                }
+            } catch {
+                // Not logged in → ignore
+            }
         };
+
         load();
     }, []);
 
     const logout = async () => {
-        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
-        navigate("/");
+        try {
+            await apiFetch("/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+        } finally {
+            navigate("/");
+        }
     };
 
     return (

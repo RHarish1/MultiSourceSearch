@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UploadModal from "../components/UploadModal.tsx";
 import { apiFetch } from "../lib/apiFetch.ts";
+
 interface Drive {
     provider: string;
     email?: string;
@@ -26,22 +27,37 @@ export default function ImageSearch() {
 
     // Fetch linked drives
     const loadDrives = async () => {
-        const res = await apiFetch("/auth/drives");
-        const data = await res.json();
-        setDrives(data.drives || []);
+        try {
+            const data = await apiFetch("/auth/drives", {
+                credentials: "include",
+            });
+            setDrives(data.drives || []);
+        } catch {
+            navigate("/dashboard");
+        }
     };
 
     // Fetch user images
     const loadImages = async () => {
-        const res = await apiFetch("/images");
-        if (!res.ok) return navigate("/dashboard");
-        setImages(await res.json());
+        try {
+            const data = await apiFetch("/images", {
+                credentials: "include",
+            });
+            setImages(data || []);
+        } catch {
+            navigate("/dashboard");
+        }
     };
 
     // Delete image
     const deleteImage = async (id: string) => {
         if (!confirm("Delete this image?")) return;
-        await apiFetch(`/images/${id}`, { method: "DELETE" });
+
+        await apiFetch(`/images/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+        });
+
         loadImages();
     };
 
@@ -52,7 +68,10 @@ export default function ImageSearch() {
 
         await apiFetch(`/images/${id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
                 fileName: newName,
                 tags: newTags,
@@ -69,15 +88,19 @@ export default function ImageSearch() {
             return;
         }
 
-        const res = await apiFetch(
-            `/images/search?q=${encodeURIComponent(search)}&and=${andSearch}`
+        const data = await apiFetch(
+            `/images/search?q=${encodeURIComponent(search)}&and=${andSearch}`,
+            { credentials: "include" }
         );
-        const data = await res.json();
+
         setImages(data.images || []);
     };
 
     const handleLogout = async () => {
-        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
+        await apiFetch("/auth/logout", {
+            method: "POST",
+            credentials: "include",
+        });
         navigate("/");
     };
 

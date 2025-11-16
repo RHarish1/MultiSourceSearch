@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiFetch.ts";
+
 interface User {
     username: string;
     email: string;
@@ -23,18 +24,24 @@ export default function ManageDrives() {
 
     // Fetch linked drive status
     const loadStatus = async () => {
-        const res = await apiFetch("/auth/me", {
-            credentials: "include",
-        });
+        try {
+            const json = await apiFetch("/auth/me", {
+                credentials: "include",
+            });
 
-        if (!res.ok) return navigate("/");
+            if (!json || !json.user) throw new Error("Not logged in");
 
-        const json = await res.json();
-        setData(json);
+            setData(json);
+        } catch {
+            navigate("/");
+        }
     };
 
     const logout = async () => {
-        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
+        await apiFetch("/auth/logout", {
+            method: "POST",
+            credentials: "include",
+        });
         navigate("/");
     };
 
@@ -46,7 +53,11 @@ export default function ManageDrives() {
         <div className="bg-light min-vh-100">
             {/* NAVBAR */}
             <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-3">
-                <a className="navbar-brand" onClick={() => navigate("/dashboard")} style={{ cursor: "pointer" }}>
+                <a
+                    className="navbar-brand"
+                    onClick={() => navigate("/dashboard")}
+                    style={{ cursor: "pointer" }}
+                >
                     📂 Manage Drives
                 </a>
                 <div className="ms-auto">
@@ -85,14 +96,20 @@ export default function ManageDrives() {
                 <div className="d-flex gap-3">
                     <button
                         className="btn btn-danger"
-                        onClick={() => (window.location.href = "/api/auth/google")}
+                        onClick={() =>
+                        (window.location.href =
+                            import.meta.env.VITE_API_URL + "/auth/google")
+                        }
                     >
                         Link Google Drive
                     </button>
 
                     <button
                         className="btn btn-primary"
-                        onClick={() => (window.location.href = "/api/auth/onedrive")}
+                        onClick={() =>
+                        (window.location.href =
+                            import.meta.env.VITE_API_URL + "/auth/onedrive")
+                        }
                     >
                         Link OneDrive
                     </button>

@@ -1,6 +1,5 @@
 // src/utils/api.ts
 
-
 export interface ApiError {
     status: number;
     message: string;
@@ -11,21 +10,22 @@ export type ApiResult<T> = {
     error?: ApiError;
 };
 
-const BASE_URL = "http://localhost:5000";
+// ✔ Use environment variable
+const BASE_URL = import.meta.env.VITE_API_URL as string;
 
 // --- build full URL with query params ---
 function buildUrl(path: string, query?: Record<string, any>) {
-    if (!query) return BASE_URL + path;
+    const url = new URL(path, BASE_URL);
 
-    const params = new URLSearchParams();
+    if (query) {
+        Object.entries(query).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                url.searchParams.append(key, String(value));
+            }
+        });
+    }
 
-    Object.entries(query).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-            params.append(key, String(value));
-        }
-    });
-
-    return `${BASE_URL}${path}?${params.toString()}`;
+    return url.toString();
 }
 
 // --- core request wrapper ---
@@ -38,22 +38,29 @@ async function request<T>(
         const url = buildUrl(path, query);
 
         const res = await fetch(url, {
-            credentials: "include", // send cookies/JWT
+            credentials: "include",        // send cookies/JWT
+            ...options,
             headers: {
                 "Content-Type": "application/json",
                 ...(options.headers || {}),
             },
-            ...options,
         });
 
-        const text = await res.text();
-        const json = text ? JSON.parse(text) : null;
+        // Read raw text first (because body may be empty)
+        const raw = await res.text();
+        let json: any = null;
+
+        try {
+            json = raw ? JSON.parse(raw) : null;
+        } catch {
+            json = null;
+        }
 
         if (!res.ok) {
             return {
                 error: {
                     status: res.status,
-                    message: json?.message || "API error",
+                    message: json?.message || json?.error || "API error",
                 },
             };
         }
@@ -63,7 +70,7 @@ async function request<T>(
         return {
             error: {
                 status: -1,
-                message: err.message || "Network error",
+                message: err?.message || "Network error",
             },
         };
     }
@@ -74,10 +81,10 @@ export const api = {
     get: <T>(path: string, query?: Record<string, any>) =>
         request<T>(path, { method: "GET" }, query),
 
-    post: <T>(path: string, body: any) =>
+    post: <T>(path: string, body?: any) =>
         request<T>(path, {
             method: "POST",
-            body: JSON.stringify(body),
+            body: body ? JSON.stringify(body) : undefined,
         }),
 
     put: <T>(path: string, body: any) =>

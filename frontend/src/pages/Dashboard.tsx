@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiFetch.ts";
+
 interface User {
     username: string;
 }
@@ -13,15 +14,15 @@ export default function Dashboard() {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const res = await apiFetch("/auth/me", {
+                const data = await apiFetch("/auth/me", {
                     credentials: "include",
                 });
 
-                if (!res.ok) throw new Error("Not logged in");
+                // If backend returns { user: {...} }
+                if (!data || !data.user) throw new Error("Not logged in");
 
-                const data = await res.json();
                 setUser(data.user);
-            } catch {
+            } catch (err) {
                 navigate("/");
             }
         };
@@ -31,8 +32,16 @@ export default function Dashboard() {
 
     // Logout
     const handleLogout = async () => {
-        await apiFetch("/auth/logout", { method: "POST", credentials: "include" });
-        navigate("/");
+        try {
+            await apiFetch("/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+
+            navigate("/");
+        } catch {
+            navigate("/");
+        }
     };
 
     return (
@@ -56,9 +65,7 @@ export default function Dashboard() {
                     <div className="card shadow-sm">
                         <div className="card-body text-center">
                             <h5 className="card-title">Manage Drives</h5>
-                            <p className="card-text">
-                                Link and manage your connected cloud drives.
-                            </p>
+                            <p className="card-text">Link and manage your connected cloud drives.</p>
                             <button
                                 className="btn btn-primary"
                                 onClick={() => navigate("/manageDrives")}
@@ -73,9 +80,7 @@ export default function Dashboard() {
                     <div className="card shadow-sm">
                         <div className="card-body text-center">
                             <h5 className="card-title">Image Search</h5>
-                            <p className="card-text">
-                                Search your uploaded or linked images efficiently.
-                            </p>
+                            <p className="card-text">Search your uploaded or linked images efficiently.</p>
                             <button
                                 className="btn btn-success"
                                 onClick={() => navigate("/imageSearch")}

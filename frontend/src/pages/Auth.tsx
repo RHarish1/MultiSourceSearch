@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiFetch.ts";
+
 export default function Auth() {
     const navigate = useNavigate();
 
@@ -31,34 +32,36 @@ export default function Auth() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const res = await apiFetch("/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(loginData),
-        });
+        try {
+            const data = await apiFetch("/auth/login", {
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify(loginData),
+            });
 
-        const data = await res.json();
-        alert(JSON.stringify(data));
-
-        if (res.ok) navigate("/dashboard");
+            alert(JSON.stringify(data));
+            navigate("/dashboard");
+        } catch (err: any) {
+            alert("Login failed: " + err.message);
+        }
     };
 
     // Submit Register
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const res = await apiFetch("/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(registerData),
-        });
+        try {
+            const data = await apiFetch("/auth/register", {
+                method: "POST",
+                credentials: "include",
+                body: JSON.stringify(registerData),
+            });
 
-        const data = await res.json();
-        alert(JSON.stringify(data));
-
-        if (res.ok) navigate("/dashboard");
+            alert(JSON.stringify(data));
+            navigate("/dashboard");
+        } catch (err: any) {
+            alert("Registration failed: " + err.message);
+        }
     };
 
     return (
