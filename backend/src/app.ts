@@ -15,6 +15,7 @@ import authRoutes from "./routes/auth.js";
 import imageHandlerRoutes from "./routes/images.js";
 import googleAuthRoutes from "./routes/googleAuth.js";
 import onedriveAuthRoutes from "./routes/onedriveAuth.js";
+import dropboxAuthRoutes from "./routes/dropboxAuth.js";
 
 // ============================================================
 // 🚀 App Initialization
@@ -102,6 +103,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/google", googleAuthRoutes);
 app.use("/api/auth/onedrive", onedriveAuthRoutes);
+app.use("/api/auth/dropbox", dropboxAuthRoutes);
 app.use("/api/images", requireLogin, imageHandlerRoutes);
 
 // Example health check route

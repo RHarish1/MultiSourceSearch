@@ -14,6 +14,7 @@ datasource db {
 enum providerType {
   google
   onedrive
+  dropbox
 }
 
 //
