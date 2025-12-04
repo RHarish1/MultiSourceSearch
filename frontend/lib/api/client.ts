@@ -1,0 +1,36 @@
+"use server"
+
+import axios, { AxiosRequestConfig } from "axios";
+
+const apiClient = axios.create({
+  baseURL: process.env.API_URL || "http://localhost:3000",
+  timeout: 10000,
+  withCredentials: true,
+});
+
+function cleanEndpoint(endpoint: string) {
+  return "/" + endpoint.replace(/^\/+|\/+$/g, "");
+}
+
+export async function api(endpoint:string, options: AxiosRequestConfig  = {}) {
+  const url = cleanEndpoint(endpoint);
+  const method = (options.method || "GET").toUpperCase();
+
+  const config: AxiosRequestConfig = {
+    url,
+    method,
+    headers: options.headers,
+  };
+
+  if (method === "GET" || method === "DELETE" || method === "HEAD" || method === "OPTIONS") {
+    if (options.params) config.params = options.params;
+  } else if (method === "POST" || method === "PUT" || method === "PATCH") {
+    if (options.data) config.data = options.data;
+  } else {
+    if (options.params) config.params = options.params;
+    if (options.data) config.data = options.data;
+  }
+
+  const response = await apiClient(config);
+  return response.data;
+}
