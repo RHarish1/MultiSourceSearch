@@ -10,46 +10,19 @@ import { Eye, EyeOff, Check, X } from "lucide-react";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-export const signupSchema = z
-  .object({
-    fullName: z
-      .string()
-      .min(3, "Full Name is required")
-      .max(100, "Full Name is too long"),
-    email: z.string().email("Invalid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .refine((val) => /[A-Z]/.test(val), {
-        message: "Password must contain at least one uppercase letter",
-      })
-      .refine((val) => /[a-z]/.test(val), {
-        message: "Password must contain at least one lowercase letter",
-      })
-      .refine((val) => /[0-9]/.test(val), {
-        message: "Password must contain at least one number",
-      })
-      .refine((val) => /[!@#$%^&*]/.test(val), {
-        message:
-          "Password must contain at least one special character (!@#$%^&*)",
-      })
-      .refine((val) => !/\s/.test(val), {
-        message: "Password must not contain spaces",
-      }),
-    confirmPassword: z.string().min(1, "Confirm Password is required"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
-
-export type SignupFormData = z.infer<typeof signupSchema>;
+import { SignupFormData, signupSchema } from "@/lib/schema/auth.schema";
+import { signup } from "@/lib/services/auth.service";
+import { handleError } from "@/lib/errors/errorHandler";
+import toast, { Toaster } from "react-hot-toast";
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-  <div className={`flex items-center gap-2 text-xs transition-colors ${met ? 'text-green-600' : 'text-muted-foreground'}`}>
+  <div
+    className={`flex items-center gap-2 text-xs transition-colors ${
+      met ? "text-green-600" : "text-muted-foreground"
+    }`}
+  >
     {met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-    <span className={met ? 'line-through' : ''}>{text}</span>
+    <span className={met ? "line-through" : ""}>{text}</span>
   </div>
 );
 
@@ -65,12 +38,12 @@ export default function SignUp() {
     mode: "onChange",
     criteriaMode: "all",
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  
+
   const password = watch("password") || "";
 
   // Check password requirements
@@ -86,14 +59,20 @@ export default function SignUp() {
   const allRequirementsMet = Object.values(requirements).every(Boolean);
 
   const onSubmit = async (data: SignupFormData) => {
-    setLoading(true);
-    console.log("Form data:", data);
-    // TODO: Implement SignUp handler
-    setTimeout(() => setLoading(false), 2000);
+    try {
+      setLoading(true);
+      await signup(data);
+      router.push("/dashboard");
+    } catch (error) {
+      toast.error(handleError(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-background to-card">
+      <Toaster />
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -133,7 +112,9 @@ export default function SignUp() {
                 )}
               />
               {errors.fullName && (
-                <p className="text-xs text-destructive mt-1">{errors.fullName.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.fullName.message}
+                </p>
               )}
             </div>
 
@@ -159,12 +140,17 @@ export default function SignUp() {
                 )}
               />
               {errors.email && (
-                <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
             <div className="relative">
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -195,27 +181,53 @@ export default function SignUp() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
-              
+
               {/* Password Requirements Tooltip */}
               {passwordFocused && !allRequirementsMet && (
                 <div className="absolute z-10 mt-2 p-4 bg-card border border-border rounded-lg shadow-lg w-full">
-                  <p className="text-xs font-medium mb-2">Password must contain:</p>
+                  <p className="text-xs font-medium mb-2">
+                    Password must contain:
+                  </p>
                   <div className="space-y-1.5">
-                    <PasswordRequirement met={requirements.minLength} text="At least 8 characters" />
-                    <PasswordRequirement met={requirements.hasUppercase} text="One uppercase letter (A-Z)" />
-                    <PasswordRequirement met={requirements.hasLowercase} text="One lowercase letter (a-z)" />
-                    <PasswordRequirement met={requirements.hasNumber} text="One number (0-9)" />
-                    <PasswordRequirement met={requirements.hasSpecial} text="One special character (!@#$%^&*)" />
-                    <PasswordRequirement met={requirements.noSpaces} text="No spaces" />
+                    <PasswordRequirement
+                      met={requirements.minLength}
+                      text="At least 8 characters"
+                    />
+                    <PasswordRequirement
+                      met={requirements.hasUppercase}
+                      text="One uppercase letter (A-Z)"
+                    />
+                    <PasswordRequirement
+                      met={requirements.hasLowercase}
+                      text="One lowercase letter (a-z)"
+                    />
+                    <PasswordRequirement
+                      met={requirements.hasNumber}
+                      text="One number (0-9)"
+                    />
+                    <PasswordRequirement
+                      met={requirements.hasSpecial}
+                      text="One special character (!@#$%^&*)"
+                    />
+                    <PasswordRequirement
+                      met={requirements.noSpaces}
+                      text="No spaces"
+                    />
                   </div>
                 </div>
               )}
-              
+
               {errors.password && !passwordFocused && (
-                <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -250,7 +262,11 @@ export default function SignUp() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               {errors.confirmPassword && (

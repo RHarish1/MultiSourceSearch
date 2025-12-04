@@ -1,24 +1,17 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
-
-
-const loginInputSchema = z.object({
-  email: z.email(),
-  password: z.string(),
-});
-
-type LoginInputType = z.infer<typeof loginInputSchema>;
+import { loginInputSchema, LoginFormData } from "@/lib/schema/auth.schema";
+import { login } from "@/lib/services/auth.service";
+import { handleError } from "@/lib/errors/errorHandler";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
@@ -27,22 +20,28 @@ export default function Login() {
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<LoginInputType>({
+  } = useForm<LoginFormData>({
     resolver: zodResolver(loginInputSchema),
     criteriaMode: "all",
     mode: "onChange",
   });
   const [loading, setLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
 
-  
-  const handleLogin = async (loginData: LoginInputType) => {
-    // TODO: Implement login handler
+  const handleLogin = async (loginData: LoginFormData) => {
+    try {
+      setLoading(true);
+      await login(loginData);
+      router.push("/dashboard");
+    } catch (error) {
+      toast.error(handleError(error));
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-background to-card transition-all">
+      <Toaster />
       <div className="w-full max-w-md transition-all">
         {/* Header */}
         <div className="text-center mb-8">
@@ -84,7 +83,7 @@ export default function Login() {
               {/* Email field Errors */}
               {errors && errors.email && (
                 <div className="p-1 rounded-md text-destructive text-xs flex flex-nowrap gap-1 items-center">
-                  <AlertCircle className="inline size-3"/>
+                  <AlertCircle className="inline size-3" />
                   <span>{errors.email.message}</span>
                 </div>
               )}
@@ -112,7 +111,6 @@ export default function Login() {
                   />
                 )}
               />
-              
             </div>
 
             <Button
