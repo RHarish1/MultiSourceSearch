@@ -14,7 +14,7 @@ import { logout } from "@/lib/services/auth.service";
 import TourOverlay from "./tour-overlay";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getImages } from "@/lib/services/images.service";
-import { Image } from "@/lib/schema/image.schema";
+import { ImageType } from "@/lib/schema/image.schema";
 import { connectDrive, disconnectDrive } from "@/lib/services/drives.service";
 
 interface DashboardProps {
@@ -29,9 +29,15 @@ export enum SortBy {
 }
 
 export interface SelectedImage {
-  image: Image; 
+  image: ImageType; 
   pageNumber: number;
   index: number;
+}
+
+export interface ImagePage {
+  images: ImageType[];
+  nextPage: number;
+  hasNextPage: boolean;
 }
 
 export default function Dashboard({ user: initialUser }: DashboardProps) {
@@ -130,7 +136,8 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
     setShowTour(false);
   };
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
-  const handleSelectedImage= (image: Image, pageNumber: number, index: number) => {
+
+  const handleSelectedImage= (image: ImageType, pageNumber: number, index: number) => {
     setSelectedImage({ image, pageNumber, index });
   };
   
@@ -182,7 +189,7 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
                 key={`page-${index}`}
                 page={page}
                 searchQuery={searchQuery}
-                onImageSelect={setSelectedImage}
+                onImageSelect={handleSelectedImage}
                 onUpload={handleUploadImage}
               />
             );
@@ -190,7 +197,7 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
         ) : (
           <ImageGrid
             searchQuery={searchQuery}
-            onImageSelect={setSelectedImage}
+            onImageSelect={handleSelectedImage}
             onUpload={handleUploadImage}
           />
         )}

@@ -19,4 +19,4 @@ export const ImageSchema = z.object({
   }).optional(),
 });
 
-export type Image = z.infer<typeof ImageSchema>;
+export type ImageType = z.infer<typeof ImageSchema>;
