@@ -1,23 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/lib/services/auth.service";
 import { Header, Hero, Features, Quotes, CTA, Footer } from "@/components/landing";
 
 export default function LandingPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const user = await isAuthenticated();
-      if (user) {
-        router.replace("/dashboard");
-      }
-    };
-    checkAuth();
-  }, [router]);
-
   return (
     <div className="min-h-screen bg-background/50 relative">
       {/* Fixed diffused circular gradient background */}

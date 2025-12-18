@@ -61,8 +61,14 @@ export default function SignUp() {
   const onSubmit = async (data: SignupFormData) => {
     try {
       setLoading(true);
-      await signup(data);
-      router.push("/dashboard");
+      const response  = await signup(data);
+      if(response.userId) {
+        toast.success("Registered successfully");
+        router.push("/dashboard");
+      }
+      else{
+        toast.error("Registration failed. Please try again.");
+      }
     } catch (error) {
       toast.error(handleError(error));
     } finally {
@@ -89,20 +95,20 @@ export default function SignUp() {
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="fullName"
+                htmlFor="username"
                 className="block text-sm font-medium mb-2"
               >
-                Full Name
+                Username
               </label>
               <Controller
                 control={control}
-                name="fullName"
+                name="username"
                 render={({ field: { onBlur, onChange, value } }) => (
                   <Input
                     type="text"
-                    name="fullName"
-                    id="fullName"
-                    placeholder="John Doe"
+                    name="username"
+                    id="username"
+                    placeholder="John_Doe_001"
                     value={value || ""}
                     onChange={onChange}
                     onBlur={onBlur}
@@ -111,9 +117,9 @@ export default function SignUp() {
                   />
                 )}
               />
-              {errors.fullName && (
+              {errors.username && (
                 <p className="text-xs text-destructive mt-1">
-                  {errors.fullName.message}
+                  {errors.username.message}
                 </p>
               )}
             </div>

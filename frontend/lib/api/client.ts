@@ -1,9 +1,10 @@
-"use server"
-
 import axios, { AxiosRequestConfig } from "axios";
 
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+console.log("API Base URL:", baseURL);
+
 const apiClient = axios.create({
-  baseURL: process.env.API_URL || "http://localhost:3000",
+  baseURL,
   timeout: 10000,
   withCredentials: true,
 });
@@ -20,6 +21,7 @@ export async function api(endpoint:string, options: AxiosRequestConfig  = {}) {
     url,
     method,
     headers: options.headers,
+    withCredentials: options.withCredentials !== undefined ? options.withCredentials : true,
   };
 
   if (method === "GET" || method === "DELETE" || method === "HEAD" || method === "OPTIONS") {

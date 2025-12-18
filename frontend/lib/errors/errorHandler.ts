@@ -26,7 +26,7 @@ export function getErrorMessage(error: unknown): string {
     if (status === 403) return "You don't have permission to do this.";
     if (status === 404) return "Resource not found.";
     if (status === 429) return "Too many requests. Please try again later.";
-    if (status && status >= 500) return "Server error. Please try again later.";
+    if (status && status >= 500) return "Unexpected error. Please try again later.";
     
     return message || "Something went wrong. Please try again.";
   }

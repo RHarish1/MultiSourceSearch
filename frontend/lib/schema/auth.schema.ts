@@ -11,10 +11,10 @@ export type LoginFormData = z.infer<typeof loginInputSchema>;
 
 export const signupSchema = z
   .object({
-    fullName: z
+    username: z
       .string()
-      .min(3, "Full Name is required")
-      .max(100, "Full Name is too long"),
+      .min(3, "Username is required")
+      .max(100, "Username is too long"),
     email: z.email("Invalid email address"),
     password: z
       .string()

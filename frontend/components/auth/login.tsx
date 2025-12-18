@@ -30,8 +30,11 @@ export default function Login() {
   const handleLogin = async (loginData: LoginFormData) => {
     try {
       setLoading(true);
-      await login(loginData);
-      router.push("/dashboard");
+      const res = await login(loginData);
+      if(res.userId){
+        toast.success("Logged in successfully!");
+        router.push("/dashboard");
+      }
     } catch (error) {
       toast.error(handleError(error));
     } finally {
@@ -40,7 +43,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-background to-card transition-all">
+    <div className="min-h-screen  flex items-center justify-center bg-linear-to-br from-background via-background to-card transition-all">
       <Toaster />
       <div className="w-full max-w-md transition-all">
         {/* Header */}
