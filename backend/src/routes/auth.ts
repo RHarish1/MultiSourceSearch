@@ -46,9 +46,11 @@ router.post("/register", async (req: AuthenticatedRequest, res: Response) => {
         });
 
         req.session.userId = user.id;
+        
+        // Wait for session to be saved before responding
         await req.session.save();
 
-        return res.json({ message: "Registered successfully", userId: user.id });
+        return res.status(200).json({ message: "Registered successfully", userId: user.id });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: "Registration failed" });
@@ -60,11 +62,11 @@ router.post("/register", async (req: AuthenticatedRequest, res: Response) => {
 // ======================================================
 router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { login, password } = req.body;
+        const { email, password } = req.body;
 
         const user = await prisma.users.findFirst({
             where: {
-                OR: [{ username: login }, { email: login }],
+                OR: [ { email: email }],
             },
         });
 
@@ -76,12 +78,14 @@ router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
         if (!match) return res.status(400).json({ error: "Invalid credentials" });
 
         req.session.userId = user.id;
+        
+        // Wait for session to be saved before responding
         await req.session.save();
-
-        return res.json({ message: "Logged in", userId: user.id });
+        
+        return res.status(200).json({ message: "Logged in", userId: user.id });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Login failed" });
+        return res.status(500).json({ error: "Login failed"});
     }
 });
 
@@ -101,28 +105,30 @@ router.post("/logout", requireLogin, (req: AuthenticatedRequest, res: Response) 
 // ======================================================
 router.get("/me", requireLogin, async (req: AuthenticatedRequest, res: Response) => {
     try {
+        
         const user = await prisma.users.findUnique({
             where: { id: req.session.userId! },
             select: {
                 id: true,
                 username: true,
                 email: true,
+                dismissedDrivePrompt: true,
+                drives:{
+                    select: { provider: true },
+                }
             },
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const drives = await prisma.drives.findMany({
-            where: { userId: user.id },
-            select: { provider: true, email: true, createdAt: true },
+        return res.json({ 
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            connectedDrives: user.drives.map(d => d.provider),
+            dismissedDrivePrompt: user.dismissedDrivePrompt,
+            isNewUser: false,
         });
-
-        const linked = {
-            google: drives.some((d) => d.provider === "google"),
-            onedrive: drives.some((d) => d.provider === "onedrive"),
-        };
-
-        return res.json({ user, linked });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: "Failed to fetch user" });

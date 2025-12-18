@@ -61,10 +61,10 @@ app.set("trust proxy", 1);
 // --- CORS ---
 app.use(
     cors({
-        origin: [
-            "https://multi-source-search.vercel.app",
-        ],
+        origin: process.env["FRONTEND_URL"] || "http://localhost:3000",
         credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
 

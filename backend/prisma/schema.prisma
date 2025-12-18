@@ -92,7 +92,7 @@ model users {
   passwordHash String?  @db.VarChar(255)
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
-
+  dismissedDrivePrompt Boolean  @default(false)
   drives       drives[]
   images       images[]
   tags         tags[]
