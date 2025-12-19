@@ -3,6 +3,7 @@
 A **multi-cloud unified image management and search system** built with **Node.js, Express, PostgreSQL, Redis, and Sequelize**.
 It allows users to connect multiple cloud drives (Google Drive, OneDrive — with Apple Drive and Dropbox support coming soon) and manage image uploads, tagging, and cross-source search from a single dashboard.
 
+> New Deployment [Link](https://multi-source-search-psi.vercel.app/)
 
 ## 🌟 Overview
 
