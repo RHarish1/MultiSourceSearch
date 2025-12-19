@@ -53,7 +53,7 @@ export async function uploadToDrive(
             media: { mimeType: file.mimetype, body: bufferStream },
             fields: "id, webViewLink, thumbnailLink",
         });
-
+        console.log(`[GOOGLE UPLOAD RESPONSE]`, JSON.stringify(res.data, null, 2));
         const result: { id: string; url: string; thumbnail?: string } = {
             id: res.data.id ?? "",
             url: res.data.webViewLink ?? "",
@@ -88,6 +88,47 @@ export async function uploadToDrive(
     }
 
     throw new Error("Unknown provider");
+}
+
+// -----------------------------
+// GET THUMBNAIL FOR FILE
+// -----------------------------
+export async function getThumbnail(
+    userId: string,
+    provider: "google" | "onedrive",
+    fileId: string
+): Promise<string | null> {
+    const drive = await ensureFreshDrive(userId, provider);
+    if (!drive) throw new Error(`${provider} drive not linked`);
+
+    const accessToken = decrypt(drive.accessToken);
+
+    // ---------- Google Drive ----------
+    if (provider === "google") {
+        const oauth2Client = new google.auth.OAuth2();
+        oauth2Client.setCredentials({ access_token: accessToken });
+        const driveClient = google.drive({ version: "v3", auth: oauth2Client });
+
+        try {
+            const res = await driveClient.files.get({
+                fileId,
+                fields: "thumbnailLink",
+            });
+
+            return res.data.thumbnailLink || null;
+        } catch (error) {
+            console.error("Error fetching thumbnail:", error);
+            return null;
+        }
+    }
+
+    // ---------- OneDrive ----------
+    if (provider === "onedrive") {
+        // OneDrive doesn't provide direct thumbnails easily
+        return null;
+    }
+
+    return null;
 }
 
 // -----------------------------
