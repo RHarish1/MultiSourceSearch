@@ -12,10 +12,13 @@ import { User } from "@/lib/schema/user.schema";
 import ImageGrid from "./image-grid";
 import { logout } from "@/lib/services/auth.service";
 import TourOverlay from "./tour-overlay";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { getImages } from "@/lib/services/images.service";
 import { ImageType } from "@/lib/schema/image.schema";
-import { connectDrive, disconnectDrive } from "@/lib/services/drives.service";
+import { connectDrive, disconnectDrive, dismissDrivePrompt } from "@/lib/services/drives.service";
+import type { ProviderType } from "@/lib/schema/drives.schema";
+import UploadModal from "./upload-modal";
+import toast from "react-hot-toast";
 
 interface DashboardProps {
   user: User;
@@ -42,6 +45,7 @@ export interface ImagePage {
 
 export default function Dashboard({ user: initialUser }: DashboardProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(initialUser);
 
   // Query Related
@@ -70,6 +74,7 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
       !user?.dismissedDrivePrompt
   );
   const [showTour, setShowTour] = useState(user?.isNewUser ?? true);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -79,52 +84,140 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
     setSortBy(type);
   };
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
-    if (files) {
-      try {
-        // TODO: Implement image upload logic
-        // TODO: Update state and storage with the new image
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      }
+    if (!files || files.length === 0) return;
+
+    // Check if user has connected drives
+    if (user.connectedDrives.length === 0) {
+      toast.error("Please connect a drive first before uploading images.");
+      setShowConnectModal(true);
+      return;
+    }
+
+    const file = files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      return;
+    }
+
+    // Open upload modal
+    setUploadFile(file);
+  };
+
+  const handleUploadSubmit = async (
+    file: File,
+    provider: ProviderType,
+    fileName?: string,
+    tags?: string[]
+  ) => {
+    try {
+      const { uploadImage } = await import("@/lib/services/images.service");
+      await uploadImage(file, provider, tags, fileName);
+      
+      // Refresh the images list
+      await queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to upload image. Please try again.";
+      toast.error(errorMessage);
+      throw error;
     }
   };
 
-  const handleConnectDrive = (driveName: string) => {
-    if (!user.connectedDrives.includes(driveName)) {
-      const newDrives = [...user.connectedDrives, driveName];
+  const handleConnectDrive = (provider: ProviderType) => {
+    if (!user.connectedDrives.includes(provider)) {
+      // Redirect to OAuth flow on backend
+      connectDrive(provider);
+    }
+  };
+
+  const handleDisconnectDrive = async (provider: ProviderType) => {
+    try {
+      await disconnectDrive(provider);
+      const newDrives = user.connectedDrives.filter(
+        (drive) => drive !== provider
+      );
       setUser({ ...user, connectedDrives: newDrives });
-      connectDrive(user.id, driveName);
+    } catch (error) {
+      console.error("Failed to disconnect drive:", error);
+    }
+  };
+
+  const handleSkipDriveConnection = async () => {
+    try {
+      await dismissDrivePrompt();
+      setUser({ ...user, dismissedDrivePrompt: true });
+      setShowConnectModal(false);
+    } catch (error) {
+      console.error("Failed to dismiss prompt:", error);
       setShowConnectModal(false);
     }
   };
 
-  const handleDisconnectDrive = (driveName: string) => {
-    const newDrives = user.connectedDrives.filter(
-      (drive) => drive !== driveName
-    );
-    setUser({ ...user, connectedDrives: newDrives });
-    disconnectDrive(user.id, driveName);
-    
-  };
-
-  const handleSkipDriveConnection = () => {
-    setUser({ ...user, dismissedDrivePrompt: true });
-    setShowConnectModal(false);
-  };
-
-  const handleAddTag = (imageId: string, tag: string) => {
+  const handleAddTag = async (imageId: string, tag: string) => {
     if (!tag.trim()) return;
-    // TODO: update state and storage
+    
+    try {
+      // Find the image and update tags
+      const allImages = data?.pages.flatMap(page => page.images) || [];
+      const image = allImages.find(img => img.id === imageId);
+      if (!image) return;
+
+      const newTags = [...image.tags, tag];
+      const { updateImageTags } = await import("@/lib/services/images.service");
+      await updateImageTags(imageId, newTags);
+      
+      // Refresh the images list
+      await queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast.success("Tag added successfully!");
+    } catch (error) {
+      console.error("Failed to add tag:", error);
+      toast.error("Failed to add tag. Please try again.");
+    }
   };
 
-  const handleRemoveTag = (imageId: string, tag: string) => {
-    // TODO: update state and storage
+  const handleRemoveTag = async (imageId: string, tag: string) => {
+    try {
+      // Find the image and update tags
+      const allImages = data?.pages.flatMap(page => page.images) || [];
+      const image = allImages.find(img => img.id === imageId);
+      if (!image) return;
+
+      const newTags = image.tags.filter(t => t !== tag);
+      const { updateImageTags } = await import("@/lib/services/images.service");
+      await updateImageTags(imageId, newTags);
+      
+      // Refresh the images list
+      await queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast.success("Tag removed successfully!");
+    } catch (error) {
+      console.error("Failed to remove tag:", error);
+      toast.error("Failed to remove tag. Please try again.");
+    }
   };
 
-  const handleDeleteImage = (imageId: string) => {
-    // TODO: update state and storage
+  const handleDeleteImage = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const { deleteImage } = await import("@/lib/services/images.service");
+      await deleteImage(imageId);
+      
+      // Refresh the images list
+      await queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast.success("Image deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete image:", error);
+      toast.error("Failed to delete image. Please try again.");
+    }
   };
 
   const handleLogout = () => {
@@ -211,6 +304,16 @@ export default function Dashboard({ user: initialUser }: DashboardProps) {
           onRemoveTag={handleRemoveTag}
           onDeleteImage={handleDeleteImage}
           onClose={() => setSelectedImage(null)}
+        />
+      )}
+
+      {/* Upload Modal */}
+      {uploadFile && (
+        <UploadModal
+          file={uploadFile}
+          connectedDrives={user.connectedDrives}
+          onUpload={handleUploadSubmit}
+          onClose={() => setUploadFile(null)}
         />
       )}
     </div>

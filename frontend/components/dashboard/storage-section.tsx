@@ -1,13 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AVAILABLE_DRIVES } from "@/lib/schema/drives.schema";
+import { AVAILABLE_DRIVES, getProviderDisplayName, type ProviderType } from "@/lib/schema/drives.schema";
 import { useState } from "react";
 
 interface StorageSectionProps {
-  connectDrive: (driveName: string) => void;
-  disconnectDrive: (driveName: string) => void;
-  connectedDrives: string[];
+  connectDrive: (driveName: ProviderType) => void;
+  disconnectDrive: (driveName: ProviderType) => void;
+  connectedDrives: ProviderType[];
 }
 
 export default function StorageSection({
@@ -46,20 +46,20 @@ export default function StorageSection({
                 <div className="space-y-2">
                   {AVAILABLE_DRIVES.map((drive) => (
                     <button
-                      key={drive.id}
+                      key={drive.provider}
                       onClick={() => {
-                        connectDrive(drive.name);
+                        connectDrive(drive.provider);
                       }}
-                      disabled={connectedDrives.includes(drive.name)}
+                      disabled={connectedDrives.includes(drive.provider)}
                       className={`w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${
-                        connectedDrives.includes(drive.name)
+                        connectedDrives.includes(drive.provider)
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : "hover:bg-primary/20 text-foreground"
                       }`}
                     >
-                      {connectedDrives.includes(drive.name)
-                        ? `✓ ${drive.name}`
-                        : drive.name}
+                      {connectedDrives.includes(drive.provider)
+                        ? `✓ ${drive.displayName}`
+                        : drive.displayName}
                     </button>
                   ))}
                 </div>
@@ -83,7 +83,7 @@ export default function StorageSection({
               key={drive}
               className="flex items-center justify-between gap-4 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30"
             >
-              <span className="text-sm font-medium text-primary">{drive}</span>
+              <span className="text-sm font-medium text-primary">{getProviderDisplayName(drive)}</span>
               <button
                 onClick={() => disconnectDrive(drive)}
                 className="text-sm text-primary hover:text-destructive transition-colors"

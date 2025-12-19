@@ -1,9 +1,10 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import type { ProviderType } from "@/lib/schema/drives.schema"
 
 interface ConnectionPromptProps {
-  onConnect: (driveName: string) => void
+  onConnect: (driveName: ProviderType) => void
   onSkip: () => void
 }
 
@@ -14,15 +15,15 @@ export default function ConnectionPrompt({ onConnect, onSkip }: ConnectionPrompt
         <div>
           <h3 className="text-lg font-semibold mb-2">Connect Your Cloud Storage</h3>
           <p className="text-muted-foreground mb-4">
-            Securely connect Google Drive or Google Photos to access your photos. You can skip this and upload manually
+            Securely connect Google Drive or OneDrive to access your photos. You can skip this and upload manually
             if you prefer.
           </p>
           <div className="flex gap-3 flex-wrap">
-            <Button onClick={() => onConnect("Google Drive")} className="bg-primary hover:bg-primary/90">
+            <Button onClick={() => onConnect("google")} className="bg-primary hover:bg-primary/90">
               Connect Google Drive
             </Button>
-            <Button onClick={() => onConnect("Google Photos")} className="bg-primary hover:bg-primary/90">
-              Connect Google Photos
+            <Button onClick={() => onConnect("onedrive")} className="bg-primary hover:bg-primary/90">
+              Connect OneDrive
             </Button>
             <Button variant="outline" onClick={onSkip}>
               Skip for Now

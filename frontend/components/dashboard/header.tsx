@@ -64,7 +64,7 @@ export default function DashboardHeader({
               onClick={() => setShowUserMenu((prev) => !prev)}
               className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold hover:opacity-90 transition-opacity"
             >
-              {user.name?.charAt(0).toUpperCase()}
+              {user.username?.charAt(0).toUpperCase()}
             </button>
 
             {showUserMenu && (

@@ -37,10 +37,18 @@ export default function SearchControls({
         />
 
         {/* Upload Button */}
-        <label id="upload-button" className="cursor-pointer">
-          <Button className="bg-primary hover:bg-primary/90 w-full md:w-auto">Upload Image</Button>
-          <input type="file" accept="image/*" onChange={onUpload} className="hidden" />
+          <Button type="button" className="bg-primary hover:bg-primary/90 w-full md:w-auto">
+        <label htmlFor="upload-input" className="cursor-pointer ">
+            Upload Image
         </label>
+          </Button>
+        <input 
+          id="upload-input"
+          type="file" 
+          accept="image/*" 
+          onChange={onUpload} 
+          className="hidden" 
+        />
       </div>
 
       {/* Sort Controls */}

@@ -4,6 +4,8 @@ import type React from "react";
 import { ImagePage } from "./dashboard";
 import Image from "next/image";
 import { ImageType } from "@/lib/schema/image.schema";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
 
 interface ImageGridProps {
   page?: ImagePage;
@@ -33,19 +35,20 @@ export default function ImageGrid({
               : "Upload your first image to get started"}
           </p>
           {!searchQuery && (
-            <label className="cursor-pointer">
-              <div className="inline-block">
-                <button className="px-6 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
+            <>
+              <label htmlFor="upload-input-grid" className="cursor-pointer inline-block">
+                <div className="px-6 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
                   Upload Image
-                </button>
-              </div>
+                </div>
+              </label>
               <input
+                id="upload-input-grid"
                 type="file"
                 accept="image/*"
                 onChange={onUpload}
                 className="hidden"
               />
-            </label>
+            </>
           )}
         </div>
       </div>
@@ -58,47 +61,72 @@ export default function ImageGrid({
       className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
     >
       {images.map((image: ImageType, index) => (
-        <div
+        <ImageCard
           key={image.id}
-          className="group relative rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
-          onClick={() => onImageSelect(image, page?.nextPage || 1, index)}
-        >
-          <div className="aspect-square relative">
-            <Image 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              src={image.thumbnailUrl ? image.thumbnailUrl : image.url}
-              alt={image.name}
-              width={400}
-              height={400}
-            />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <span className="text-white text-sm font-medium">View & Tag</span>
-            </div>
-          </div>
-          <div className="p-4">
-            <p className="text-sm font-medium truncate text-foreground">
-              {image.name}
-            </p>
-            {image.tags && image.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {image.tags.slice(0, 2).map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-1 rounded bg-primary/15 text-primary"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                {image.tags.length > 2 && (
-                  <span className="text-xs px-2 py-1 rounded bg-primary/15 text-primary">
-                    +{image.tags.length - 2}
-                  </span>
-                )}
-              </div>
+          image={image}
+          onImageSelect={() => onImageSelect(image, page?.nextPage || 1, index)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ImageCard({
+  image,
+  onImageSelect,
+}: {
+  image: ImageType;
+  onImageSelect: () => void;
+}) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div
+      className="group relative rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer"
+      onClick={onImageSelect}
+    >
+      <div className="aspect-square relative">
+        {isLoading && <Skeleton className="absolute inset-0" />}
+
+        <Image
+          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+            isLoading ? "opacity-0" : "opacity-100"
+          }`}
+          src={image.thumbnailUrl ?? image.url}
+          alt={image.name}
+          width={400}
+          height={400}
+          onLoad={() => setIsLoading(false)}
+        />
+
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <span className="text-white text-sm font-medium">View & Tag</span>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <p className="text-sm font-medium truncate text-foreground">
+          {image.name}
+        </p>
+
+        {image.tags && image.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {image.tags.slice(0, 2).map((tag: string) => (
+              <span
+                key={tag}
+                className="text-xs px-2 py-1 rounded bg-primary/15 text-primary"
+              >
+                {tag}
+              </span>
+            ))}
+            {image.tags.length > 2 && (
+              <span className="text-xs px-2 py-1 rounded bg-primary/15 text-primary">
+                +{image.tags.length - 2}
+              </span>
             )}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
   );
 }

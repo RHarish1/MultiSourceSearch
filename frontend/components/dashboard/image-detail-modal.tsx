@@ -1,18 +1,19 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { SelectedImage } from "./dashboard"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SelectedImage } from "./dashboard";
+import { useState } from "react";
+import Image from "next/image";
 
 interface ImageDetailModalProps {
-  selectedImage: SelectedImage
-  onAddTag: (imageId: string, tag: string) => void
-  onRemoveTag: (imageId: string, tag: string) => void
-  onDeleteImage: (imageId: string) => void
-  onClose: () => void
+  selectedImage: SelectedImage;
+  onAddTag: (imageId: string, tag: string) => void;
+  onRemoveTag: (imageId: string, tag: string) => void;
+  onDeleteImage: (imageId: string) => void;
+  onClose: () => void;
 }
 
 export default function ImageDetailModal({
@@ -28,7 +29,7 @@ export default function ImageDetailModal({
       onAddTag(selectedImage.image.id, imageTag);
       setImageTag("");
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -36,7 +37,10 @@ export default function ImageDetailModal({
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-card">
           <h2 className="text-lg font-semibold">{selectedImage.image.name}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             ✕
           </button>
         </div>
@@ -44,8 +48,16 @@ export default function ImageDetailModal({
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Image Preview */}
-          <img src={selectedImage.image.thumbnailUrl || "/placeholder.svg"} alt={selectedImage.image.name} className="w-full rounded-lg" />
-
+          <div className="w-full flex justify-center relative h-12">
+            <Image
+              src={selectedImage.image.url}
+              alt={selectedImage.image.name}
+              className="w-full rounded-lg object-contain max-h-96"
+              fill
+              objectFit="contain"
+            />
+            
+          </div>
           {/* Tags Section */}
           <div>
             <h3 className="font-semibold mb-3">Tags</h3>
@@ -70,7 +82,13 @@ export default function ImageDetailModal({
                 onKeyDown={handleKeyPress}
                 className="flex-1 bg-background border-border"
               />
-              <Button onClick={() => onAddTag(selectedImage.image.id, imageTag)} className="bg-primary hover:bg-primary/90">
+              <Button
+                onClick={() => {
+                  onAddTag(selectedImage.image.id, imageTag);
+                  setImageTag("");
+                }}
+                className="bg-primary hover:bg-primary/90"
+              >
                 Add
               </Button>
             </div>
@@ -78,16 +96,31 @@ export default function ImageDetailModal({
 
           {/* Image Metadata */}
           <div className="text-sm text-muted-foreground space-y-1">
-            <p>Uploaded: {new Date(selectedImage.image.uploadedAt).toLocaleDateString()}</p>
-            <p>Source: {selectedImage.image.source}</p>
+            {selectedImage.image.uploadedAt && (
+              <p>
+                Uploaded:{" "}
+                {new Date(selectedImage.image.uploadedAt).toLocaleDateString()}
+              </p>
+            )}
+            {selectedImage.image.provider && (
+              <p>
+                Source:{" "}
+                {selectedImage.image.provider === "google"
+                  ? "Google Drive"
+                  : "OneDrive"}
+              </p>
+            )}
           </div>
 
           {/* Delete Button */}
-          <Button onClick={() => onDeleteImage(selectedImage.image.id)} className="w-full bg-destructive hover:bg-destructive/90">
+          <Button
+            onClick={() => onDeleteImage(selectedImage.image.id)}
+            className="w-full bg-destructive hover:bg-destructive/90"
+          >
             Delete Image
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
