@@ -7,6 +7,7 @@ import requireLogin from "../middleware/requireLogin.js";
 import refreshDrives from "../middleware/refreshDrives.js";
 import { AuthenticatedRequest } from "../types/CustomRequest.js";
 import { prisma } from "../prisma.js";
+import { providerType } from "@prisma/client";
 
 
 
@@ -164,7 +165,57 @@ router.get(
     }
 );
 
+// ======================================================
+// DISCONNECT DRIVE
+// ======================================================
+router.delete(
+    "/drives/:provider",
+    requireLogin,
+    async (req: AuthenticatedRequest, res: Response) => {
+        try {
+            const provider = req.params['provider'] as providerType;
+            
+            if (!["google", "onedrive"].includes(provider)) {
+                return res.status(400).json({ error: "Invalid provider" });
+            }
+            const deleted = await prisma.drives.deleteMany({
+                where: {
+                    userId: req.session.userId!,
+                    provider: provider,
+                },
+            });
 
+            if (deleted.count === 0) {
+                return res.status(404).json({ error: "Drive not found" });
+            }
 
+            return res.json({ message: `${provider} disconnected successfully` });
+        } catch (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to disconnect drive" });
+        }
+    }
+);
+
+// ======================================================
+// UPDATE DRIVE PROMPT STATUS
+// ======================================================
+router.patch(
+    "/dismiss-drive-prompt",
+    requireLogin,
+    async (req: AuthenticatedRequest, res: Response) => {
+        try {
+            await prisma.users.update({
+                where: { id: req.session.userId! },
+                data: { dismissedDrivePrompt: true },
+            });
+
+            return res.json({ message: "Drive prompt dismissed" });
+        } catch (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to update preference" });
+        }
+    }
+);
 
 export default router;

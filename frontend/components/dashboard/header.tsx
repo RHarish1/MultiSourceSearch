@@ -68,7 +68,7 @@ export default function DashboardHeader({
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg bg-card border border-border shadow-lg z-50">
+              <div className="absolute  right-0 mt-2 w-48 rounded-lg bg-card border border-border shadow-lg z-50">
                 <Link href="/profile">
                   <button className="w-full text-left px-4 py-2 hover:bg-muted rounded-t-lg">
                     Profile Settings

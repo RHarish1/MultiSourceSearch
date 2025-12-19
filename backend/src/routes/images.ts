@@ -40,7 +40,10 @@ router.get(
                 id: img.id,
                 fileName: img.fileName,
                 fileUrl: img.fileUrl,
+                thumbnailUrl: img.thumbnailUrl,
                 tags: img.image_tags.map((t) => t.tags.name),
+                uploadedAt: img.uploadedAt,
+                provider: img.provider,
             }));
 
             res.json(result);
@@ -111,7 +114,10 @@ router.get("/search", requireLogin, async (req: AuthenticatedRequest, res: Respo
             id: img.id,
             fileName: img.fileName,
             fileUrl: img.fileUrl,
+            thumbnailUrl: img.thumbnailUrl,
             tags: img.image_tags.map((t) => t.tags.name),
+            uploadedAt: img.uploadedAt,
+            provider: img.provider,
         }));
 
         return res.json({ images: result });
@@ -152,6 +158,7 @@ router.post(
             if (!drive) return res.status(400).json({ error: "Drive not linked." });
 
             const uploaded = await uploadToDrive(userId, provider, req.file);
+            console.log(`[${provider.toUpperCase()} UPLOAD RESPONSE]`, JSON.stringify(uploaded, null, 2));
 
             const image = await prisma.images.create({
                 data: {
@@ -161,6 +168,7 @@ router.post(
                     fileId: uploaded.id,
                     fileName: fileName || req.file.originalname,
                     fileUrl: uploaded.url,
+                    thumbnailUrl: uploaded.thumbnail || null,
                     uploadedAt: new Date(),
                 },
             });
@@ -185,6 +193,56 @@ router.post(
         } catch (err) {
             console.error("Error uploading image:", err);
             return res.status(500).json({ error: "Upload failed" });
+        }
+    }
+);
+
+// ======================================================
+//                  GET THUMBNAIL
+// ======================================================
+router.get(
+    "/:id/thumbnail",
+    requireLogin,
+    async (req: AuthenticatedRequest, res: Response) => {
+        try {
+            const userId = req.session.userId!;
+            const id = req.params["id"];
+
+            if (!id) {
+                return res.status(400).json({ error: "Missing image id" });
+            }
+
+            const image = await prisma.images.findFirst({
+                where: { id, userId },
+            });
+
+            if (!image) return res.status(404).json({ error: "Not found" });
+
+            // If thumbnail already exists, return it
+            if (image.thumbnailUrl) {
+                return res.json({ thumbnailUrl: image.thumbnailUrl });
+            }
+
+            // Fetch thumbnail from drive
+            const { getThumbnail } = await import("../utils/driveUtils.js");
+            const thumbnailUrl = await getThumbnail(
+                userId,
+                image.provider as "google" | "onedrive",
+                image.fileId
+            );
+
+            // Update database if thumbnail found
+            if (thumbnailUrl) {
+                await prisma.images.update({
+                    where: { id: image.id },
+                    data: { thumbnailUrl },
+                });
+            }
+
+            return res.json({ thumbnailUrl });
+        } catch (err) {
+            console.error("Error fetching thumbnail:", err);
+            return res.status(500).json({ error: "Failed to fetch thumbnail" });
         }
     }
 );

@@ -20,6 +20,10 @@ const oauth2Client = new google.auth.OAuth2(
     process.env["GOOGLE_REDIRECT_URI"]
 );
 
+console.log("🔧 Google OAuth Configuration:");
+console.log("  Client ID:", process.env["GOOGLE_CLIENT_ID"]);
+console.log("  Redirect URI:", process.env["GOOGLE_REDIRECT_URI"]);
+
 router.get("/", requireLogin, refreshDrives, (_req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: "offline",
@@ -30,6 +34,7 @@ router.get("/", requireLogin, refreshDrives, (_req, res) => {
             "https://www.googleapis.com/auth/drive.file",
         ],
     });
+    console.log("🔗 Generated OAuth URL:", authUrl);
     return res.redirect(authUrl);
 });
 
